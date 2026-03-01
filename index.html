@@ -1412,7 +1412,7 @@ tr:hover td{background:var(--surface2)}
 <script>
 // ===================== STATE =====================
 const STATE = {
-  apiUrl: localStorage.getItem('rentpro_api_url') || 'https://script.google.com/macros/s/AKfycbwtupSr1eGeei8a4hY0uZYk8YiYWFMSIP7epVP6jZ_gUk8PRCNANPFgf6C9LJbbbr1_Ew/exec',
+  apiUrl: localStorage.getItem('rentpro_api_url') || 'https://script.google.com/macros/s/AKfycbz_asz4PtaZ9_yaoQVN6Hw7YyxQNVx5OkInvGeCEu44Xjd-TH4RoogPc8K_idkWBFBd/exec',
   token: localStorage.getItem('rentpro_token') || '',
   user: JSON.parse(localStorage.getItem('rentpro_user') || 'null'),
   loginRole: 'Admin',
@@ -1498,20 +1498,19 @@ function isAdminOrStaff() { return isAdmin() || isStaff(); }
 // ===================== API =====================
 async function api(action, data = {}) {
   if (!STATE.apiUrl) {
-    // Demo mode
     return demoApi(action, data);
   }
   try {
-    const res = await fetch(STATE.apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, token: STATE.token, ...data })
-    });
-    return await res.json();
+    // Google Apps Script CORS fix - GET request with params
+    const payload = JSON.stringify({ action, token: STATE.token || '', ...data });
+    const url = STATE.apiUrl + '?payload=' + encodeURIComponent(payload);
+    const res = await fetch(url, { method: 'GET' });
+    const text = await res.text();
+    return JSON.parse(text);
   } catch (e) {
     console.error('API Error:', e);
-    toast('Connection error. Using demo mode.', 'error');
-    return demoApi(action, data);
+    toast('Google Sheet se connect nahi ho pa raha. Internet check karo.', 'error');
+    return { success: false, error: 'Connection failed' };
   }
 }
 
@@ -1588,7 +1587,7 @@ function demoApi(action, data) {
         save();
         return { success: true, token, user: { id: u.UserID, name: u.Name, role: u.Role, mobile: u.Mobile } };
       }
-      return { success: false, error: 'Mobile ya password galat hai\n\nDefault: 9000000001 / Admin@123' };
+      return { success: false, error: 'Mobile ya password galat hai' };
     }
 
     // ===== PROPERTIES =====
@@ -3983,6 +3982,18 @@ function loadSavedTheme() {
 
 // Load theme on page start
 loadSavedTheme();
+
+// ===================== APP STARTUP =====================
+(function startup() {
+  // Purana invalid token clear karo
+  localStorage.removeItem('rentpro_token');
+  localStorage.removeItem('rentpro_user');
+  STATE.token = '';
+  STATE.user = null;
+  // Login page dikhao
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+})();
 
 </script>
 
