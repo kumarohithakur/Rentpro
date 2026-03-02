@@ -1497,20 +1497,24 @@ function isAdminOrStaff() { return isAdmin() || isStaff(); }
 
 // ===================== API =====================
 async function api(action, data = {}) {
+  // Update last activity time
+  if (action !== 'login') localStorage.setItem('rentpro_last_active', Date.now());
+
   if (!STATE.apiUrl) {
-    return demoApi(action, data);
+    toast('API URL set nahi hai! ⚙️ icon se set karo.', 'error');
+    return { success: false, error: 'API URL not set' };
   }
   try {
     // Google Apps Script CORS fix - GET request with params
-    const payload = JSON.stringify({ action, token: STATE.token || '', ...data });
+    const payload = JSON.stringify({ action, token: STATE.token || '', _mobile: STATE.user ? String(STATE.user.mobile) : '', _role: STATE.user ? STATE.user.role : '', ...data });
     const url = STATE.apiUrl + '?payload=' + encodeURIComponent(payload);
     const res = await fetch(url, { method: 'GET' });
     const text = await res.text();
     return JSON.parse(text);
   } catch (e) {
     console.error('API Error:', e);
-    toast('Google Sheet se connect nahi ho pa raha. Internet check karo.', 'error');
-    return { success: false, error: 'Connection failed' };
+    toast('Internet check karo ya thoda wait karo.', 'error');
+    return { success: false, error: e.message || 'Connection failed' };
   }
 }
 
@@ -2056,9 +2060,9 @@ async function doLogin() {
   btn.textContent = 'Sign In';
 
   if (res.success) {
-    STATE.token = res.token;
+    STATE.token = res.token || '';
     STATE.user = res.user;
-    localStorage.setItem('rentpro_token', res.token);
+    localStorage.setItem('rentpro_token', res.token || '');
     localStorage.setItem('rentpro_user', JSON.stringify(res.user));
     initApp();
   } else {
@@ -3734,16 +3738,7 @@ function downloadLastBill() {
 window.addEventListener('load', () => {
   if (STATE.token && STATE.user) {
     try {
-      // Token format check - agar purana format hai to clear karo
-      const decoded = atob(STATE.token);
-      if (!decoded.includes(':RENTPRO_MY_SECRET_2024_XYZ')) {
-        localStorage.removeItem('rentpro_token');
-        localStorage.removeItem('rentpro_user');
-        STATE.token = '';
-        STATE.user = null;
-      } else {
-        initApp();
-      }
+      initApp();
     } catch (e) {
       logout();
     }
