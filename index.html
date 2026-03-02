@@ -994,7 +994,7 @@ tr:hover td{background:var(--surface2)}
       <div class="form-group">
         <label>Security Deposit (₹)</label>
         <input type="number" id="tn_security" placeholder="e.g. 10000">
-        <p style="font-size:12px;color:var(--text2);margin-top:4px">💡 Yeh amount vacate karte waqt tenant ko wapas karna hoga (alag track hoga)</p>
+
       </div>
     </div>
     <div class="modal-footer">
@@ -1176,7 +1176,7 @@ tr:hover td{background:var(--surface2)}
     <div class="modal-body">
       <input type="hidden" id="et_id">
       <div style="background:var(--primary-light);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--primary)">
-        ℹ️ <strong>Note:</strong> Yahan jo bhi badlega, <strong>agle bill</strong> mein naya rate aayega. Purane bills par koi asar nahi padega.
+
       </div>
       <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Basic Info</h4>
       <div class="form-row">
@@ -2586,6 +2586,7 @@ function renderTenants(tenants) {
             </div>
             <div style="display:flex;gap:6px">
               ${isAdmin() ? `<button onclick="openEditTenant('${t.TenantID}')" style="background:rgba(255,255,255,0.2);border:none;width:34px;height:34px;border-radius:9px;color:white;font-size:15px;cursor:pointer;transition:all 0.2s" title="Edit Tenant" onmouseenter="this.style.background='rgba(255,255,255,0.4)'" onmouseleave="this.style.background='rgba(255,255,255,0.2)'">✏️</button>` : ''}
+              ${isAdmin() ? `<button onclick="openResetTenantPwd('${t.TenantID}','${t.Name}')" style="background:rgba(255,255,255,0.2);border:none;width:34px;height:34px;border-radius:9px;color:white;font-size:15px;cursor:pointer;transition:all 0.2s" title="Reset Password" onmouseenter="this.style.background='rgba(255,255,255,0.4)'" onmouseleave="this.style.background='rgba(255,255,255,0.2)'">🔑</button>` : ''}
               ${isAdmin() && t.Status === 'Active' ? `<button onclick="vacateTenant('${t.TenantID}','${t.Name}')" style="background:rgba(255,255,255,0.2);border:none;width:34px;height:34px;border-radius:9px;color:white;font-size:15px;cursor:pointer;transition:all 0.2s" title="Vacate Room" onmouseenter="this.style.background='rgba(255,255,255,0.4)'" onmouseleave="this.style.background='rgba(255,255,255,0.2)'">🚪</button>` : ''}
               ${isStaff() ? `<span style="font-size:10px;color:rgba(255,255,255,0.5);padding:3px 8px;background:rgba(255,255,255,0.1);border-radius:6px">👁️ View Only</span>` : ''}
             </div>
@@ -2594,23 +2595,34 @@ function renderTenants(tenants) {
           <div style="padding:14px 18px">
             <div style="display:flex;flex-direction:column;gap:8px">
               <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                <span style="color:var(--text2)">📱</span>
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Mobile:</span>
                 <span style="font-weight:500">${t.Mobile}</span>
               </div>
               <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                <span style="color:var(--text2)">📅</span>
-                <span>Check-in: <strong>${fmtDate(t.JoiningDate)}</strong></span>
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Check-in:</span>
+                <span><strong>${fmtDate(t.JoiningDate)}</strong></span>
               </div>
               <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                <span style="color:var(--text2)">₹</span>
-                <span>Rent: <strong>₹${fmt(t.RentAmount)}</strong> | Maint: <strong>₹${fmt(t.MaintenanceAmount)}</strong></span>
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Rent:</span>
+                <span><strong>₹${fmt(t.RentAmount)}</strong></span>
               </div>
-              <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-                <span style="color:var(--text2)">🔒</span>
-                <span>Security: <strong>₹${fmt(t.SecurityDeposit || 0)}</strong></span>
-              </div>
+              ${parseFloat(t.MaintenanceAmount) > 0 ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Maint:</span>
+                <span><strong>₹${fmt(t.MaintenanceAmount)}</strong></span>
+              </div>` : ''}
+              ${t.IsMetered === 'Yes' ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Elec:</span>
+                <span><strong>₹${fmt(t.RatePerUnit)}/unit</strong> (Meter)</span>
+              </div>` : parseFloat(t.FixedElecAmount) > 0 ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Elec:</span>
+                <span><strong>₹${fmt(t.FixedElecAmount)}</strong> (Fixed)</span>
+              </div>` : ''}
+              ${parseFloat(t.SecurityDeposit) > 0 ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Security:</span>
+                <span><strong>₹${fmt(t.SecurityDeposit)}</strong></span>
+              </div>` : ''}
               ${dues > 0 ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#dc2626">
-                <span>⚠️</span><span style="font-weight:700">Dues: ₹${fmt(dues)}</span>
+                <span style="font-size:11px;font-weight:600;min-width:52px">Dues:</span><span style="font-weight:700">₹${fmt(dues)}</span>
               </div>` : `<div style="font-size:12px;color:var(--success);font-weight:600">✅ No dues</div>`}
             </div>
             <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
@@ -2749,7 +2761,7 @@ async function vacateTenant(id, name) {
   const t = allTenants.find(t => t.TenantID === id);
   const deposit = t ? (parseFloat(t.SecurityDeposit) || 0) : 0;
   const depositMsg = deposit > 0
-    ? `\n\n💰 Security Deposit: ₹${fmt(deposit)} wapas karna hoga tenant ko.`
+    ? `\n\nSecurity Deposit: ₹${fmt(deposit)} wapas karna hoga.`
     : '\n\n(Koi security deposit nahi hai)';
   confirm_action(
     `🚪 Vacate ${name}?`,
@@ -3154,7 +3166,7 @@ async function markBillPaid(billId, tenantName) {
   // Payment modal open karo with this bill pre-selected
   await loadUnpaidBills(billId);
   showModal('addPaymentModal');
-  toast(`💡 ${tenantName} ka bill select ho gaya - amount enter karo`, 'info');
+  toast(`${tenantName} ka bill select ho gaya`, 'info');
 }
 
 // ===================== PAYMENTS =====================
@@ -3926,6 +3938,82 @@ async function doResetPassword() {
   }
 }
 
+
+// ===== TENANT PASSWORD RESET (Admin OTP) =====
+let _rtpNewPwd = '';
+let _rtpTenantId = '';
+let _rtpAdminMobile = '';
+let _rtpResetToken = '';
+
+function openResetTenantPwd(tenantId, tenantName) {
+  _rtpTenantId = tenantId;
+  _rtpNewPwd = '';
+  _rtpResetToken = '';
+  document.getElementById('rtp_tenantId').value = tenantId;
+  document.getElementById('rtp_tenantName').textContent = '👤 ' + tenantName;
+  document.getElementById('rtp_newPwd').value = '';
+  document.getElementById('rtp_confirmPwd').value = '';
+  document.getElementById('rtp_otp').value = '';
+  document.getElementById('rtpStep1').style.display = 'block';
+  document.getElementById('rtpStep2').style.display = 'none';
+  document.getElementById('rtpStep3').style.display = 'none';
+  showModal('resetTenantPwdModal');
+}
+
+async function sendAdminOTPForTenant() {
+  const pwd1 = document.getElementById('rtp_newPwd').value;
+  const pwd2 = document.getElementById('rtp_confirmPwd').value;
+  if (pwd1.length < 6) { toast('Password kam se kam 6 characters ka hona chahiye', 'error'); return; }
+  if (pwd1 !== pwd2) { toast('Dono passwords match nahi kar rahe!', 'error'); return; }
+  _rtpNewPwd = pwd1;
+
+  // Admin ka mobile use karke OTP bhejo
+  const adminMobile = STATE.user.mobile;
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Bhej raha hun...';
+
+  const res = await api('forgotPassword', { mobile: adminMobile });
+  btn.disabled = false; btn.textContent = '📧 Admin Email pe OTP Bhejo';
+
+  if (res.success) {
+    _rtpAdminMobile = adminMobile;
+    document.getElementById('rtp_emailInfo').textContent = 'OTP bheja: ' + (res.email || adminMobile);
+    document.getElementById('rtpStep1').style.display = 'none';
+    document.getElementById('rtpStep2').style.display = 'block';
+    toast('OTP admin email pe bhej diya! ✅', 'success');
+  } else {
+    toast(res.error || 'OTP nahi bheja ja saka. Admin ka email set hai?', 'error');
+  }
+}
+
+async function verifyAdminOTPAndReset() {
+  const otp = (document.getElementById('rtp_otp').value || '').trim();
+  if (otp.length !== 6) { toast('6-digit OTP daalo', 'error'); return; }
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Verify ho raha hai...';
+
+  // Step 1: OTP verify karo
+  const verifyRes = await api('verifyOTP', { mobile: _rtpAdminMobile, otp });
+  if (!verifyRes.success) {
+    btn.disabled = false; btn.textContent = '✅ Verify karke Reset Karo';
+    toast(verifyRes.error || 'OTP galat hai', 'error');
+    return;
+  }
+
+  // Step 2: Tenant password update karo
+  const updateRes = await api('updateTenant', { TenantID: _rtpTenantId, Password: _rtpNewPwd });
+  btn.disabled = false; btn.textContent = '✅ Verify karke Reset Karo';
+
+  if (updateRes.success) {
+    document.getElementById('rtpStep2').style.display = 'none';
+    document.getElementById('rtpStep3').style.display = 'block';
+    toast('Tenant ka password reset ho gaya! ✅', 'success');
+  } else {
+    toast(updateRes.error || 'Password update nahi hua', 'error');
+  }
+}
+
 // ===================== THEME SYSTEM =====================
 const THEMES = {
   ocean:    { name: '🌊 Ocean Blue',    fonts: 'Syne + DM Sans' },
@@ -4016,7 +4104,7 @@ loadSavedTheme();
           <option value="Admin">Admin</option>
         </select>
         <div id="eu_self_hint" style="display:none;margin-top:6px;padding:8px 10px;background:var(--warning);background:rgba(245,158,11,0.15);border-left:3px solid var(--warning);border-radius:6px;font-size:12px;color:#d97706">
-          ⚠️ Apna Role aur Status change nahi kar sakte — doosre admin se karwao
+          Apna Role aur Status change nahi kar sakte
         </div>
       </div>
       <div class="form-group"><label>UPI ID</label><input type="text" id="eu_upi" placeholder="yourname@paytm"></div>
@@ -4034,6 +4122,62 @@ loadSavedTheme();
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="hideModal('editUserModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveEditUser()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Reset Tenant Password Modal -->
+<div class="overlay" id="resetTenantPwdModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔑 Tenant Password Reset</div>
+      <button class="modal-close" onclick="hideModal('resetTenantPwdModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rtp_tenantId">
+      <p id="rtp_tenantName" style="font-weight:700;font-size:15px;margin-bottom:16px"></p>
+
+      <!-- Step 1: New Password -->
+      <div id="rtpStep1">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+          Admin ka OTP email pe aayega. Verify karke tenant ka naya password set karo.
+        </p>
+        <div class="form-group">
+          <label>Naya Password (Tenant ke liye)</label>
+          <input type="password" id="rtp_newPwd" placeholder="Kam se kam 6 characters">
+        </div>
+        <div class="form-group">
+          <label>Password Confirm karo</label>
+          <input type="password" id="rtp_confirmPwd" placeholder="Dobara likhao">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="sendAdminOTPForTenant()">📧 Admin Email pe OTP Bhejo</button>
+      </div>
+
+      <!-- Step 2: OTP Verify -->
+      <div id="rtpStep2" style="display:none">
+        <div style="text-align:center;margin-bottom:20px">
+          <div style="font-size:36px">📬</div>
+          <div style="font-weight:700;margin-top:8px">OTP bhej diya!</div>
+          <div id="rtp_emailInfo" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
+        </div>
+        <div class="form-group">
+          <label>6-Digit OTP</label>
+          <input type="number" id="rtp_otp" placeholder="_ _ _ _ _ _"
+            style="text-align:center;font-size:24px;font-weight:800;letter-spacing:8px">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="verifyAdminOTPAndReset()">✅ Verify karke Reset Karo</button>
+        <button onclick="document.getElementById('rtpStep1').style.display='block';document.getElementById('rtpStep2').style.display='none'" 
+          style="background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;width:100%;margin-top:10px;padding:6px">← Wapas</button>
+      </div>
+
+      <!-- Step 3: Success -->
+      <div id="rtpStep3" style="display:none;text-align:center;padding:20px 0">
+        <div style="font-size:48px">✅</div>
+        <div style="font-weight:800;font-size:16px;margin-top:12px;color:var(--success)">Password Reset Ho Gaya!</div>
+        <div style="font-size:13px;color:var(--text2);margin-top:8px">Tenant ab naye password se login kar sakta hai</div>
+        <button class="btn btn-primary" style="margin-top:20px" onclick="hideModal('resetTenantPwdModal')">Done</button>
+      </div>
     </div>
   </div>
 </div>
