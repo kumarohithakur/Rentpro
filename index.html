@@ -3734,7 +3734,16 @@ function downloadLastBill() {
 window.addEventListener('load', () => {
   if (STATE.token && STATE.user) {
     try {
-      initApp();
+      // Token format check - agar purana format hai to clear karo
+      const decoded = atob(STATE.token);
+      if (!decoded.includes(':RENTPRO_MY_SECRET_2024_XYZ')) {
+        localStorage.removeItem('rentpro_token');
+        localStorage.removeItem('rentpro_user');
+        STATE.token = '';
+        STATE.user = null;
+      } else {
+        initApp();
+      }
     } catch (e) {
       logout();
     }
