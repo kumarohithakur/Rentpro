@@ -1501,6 +1501,36 @@ function isStaff() { return STATE.user && STATE.user.role === 'Staff'; }
 function isTenant() { return STATE.user && STATE.user.role === 'Tenant'; }
 function isAdminOrStaff() { return isAdmin() || isStaff(); }
 
+// ===================== CACHE SYSTEM =====================
+const CACHE_KEY = 'rentpro_cache';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY + '_' + key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Date.now() - obj.ts > CACHE_TTL) return null; // Expired
+    return obj.data;
+  } catch(e) { return null; }
+}
+
+function cacheSet(key, data) {
+  try {
+    localStorage.setItem(CACHE_KEY + '_' + key, JSON.stringify({ data, ts: Date.now() }));
+  } catch(e) {}
+}
+
+function cacheClear(key) {
+  try {
+    if (key) localStorage.removeItem(CACHE_KEY + '_' + key);
+    else {
+      // Clear all cache
+      Object.keys(localStorage).filter(k => k.startsWith(CACHE_KEY)).forEach(k => localStorage.removeItem(k));
+    }
+  } catch(e) {}
+}
+
 // ===================== API =====================
 async function api(action, data = {}) {
   // Update last activity time
@@ -2446,6 +2476,8 @@ function renderOccupancyChart(occupied, vacant) {}
 
 // ===================== PROPERTIES =====================
 async function loadProperties() {
+  const cached = cacheGet('properties');
+  if (cached) { renderProperties(cached); }
   const res = await api('getProperties');
   STATE.data.properties = res.data || [];
   const el = document.getElementById('propertiesList');
@@ -2552,10 +2584,15 @@ async function deleteRoom(id, no) {
 let allTenants = [];
 
 async function loadTenants() {
+  const cached = cacheGet('tenants');
+  if (cached) { allTenants = cached; STATE.data.tenants = allTenants; renderTenants(allTenants); }
   const res = await api('getTenants');
-  allTenants = res.data || [];
-  STATE.data.tenants = allTenants;
-  renderTenants(allTenants);
+  if (res.success && res.data) {
+    allTenants = res.data;
+    STATE.data.tenants = allTenants;
+    cacheSet('tenants', allTenants);
+    renderTenants(allTenants);
+  }
 }
 
 function getInitials(name) {
@@ -2829,19 +2866,25 @@ let allBills = [];
 async function loadBills() {
   const query = {};
   if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
+  const cacheKey = 'bills_' + (STATE.user.id || 'all');
+  // Cache se turant dikhao
+  const cached = cacheGet(cacheKey);
+  if (cached) { allBills = cached; renderBills(allBills); }
+  // Background mein fresh
   const res = await api('getBills', query);
-  allBills = (res.data || []).sort((a, b) => {
-    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
-    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
-    return bVal - aVal; // Latest first
-  });
-  
-  // Populate month filter
-  const monthFilter = document.getElementById('billMonthFilter');
-  const months = [...new Set(allBills.map(b => `${b.Month}/${b.Year}`))];
-  monthFilter.innerHTML = '<option value="">All Months</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
-
-  renderBills(allBills);
+  if (res.success && res.data) {
+    allBills = res.data.sort((a, b) => {
+      const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
+      const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
+      return bVal - aVal;
+    });
+    cacheSet(cacheKey, allBills);
+    // Populate month filter
+    const monthFilter = document.getElementById('billMonthFilter');
+    const months = [...new Set(allBills.map(b => `${b.Month}/${b.Year}`))];
+    monthFilter.innerHTML = '<option value="">All Months</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
+    renderBills(allBills);
+  }
 }
 
 function renderBills(bills) {
@@ -3222,12 +3265,20 @@ let allPayments = [];
 async function loadPayments() {
   const query = {};
   if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
+  const cacheKey = 'payments_' + (STATE.user.id || 'all');
+  // Cache se turant dikhao
+  const cached = cacheGet(cacheKey);
+  if (cached) { allPayments = cached; STATE._allPayments = allPayments; renderPayments(allPayments); }
+  // Background mein fresh
   const res = await api('getPayments', query);
-  allPayments = (res.data || []).sort((a, b) => {
-    return new Date(b.PaymentDate || b.CreatedAt || 0) - new Date(a.PaymentDate || a.CreatedAt || 0);
-  });
-  STATE._allPayments = allPayments;
-  renderPayments(allPayments);
+  if (res.success && res.data) {
+    allPayments = res.data.sort((a, b) => {
+      return new Date(b.PaymentDate || b.CreatedAt || 0) - new Date(a.PaymentDate || a.CreatedAt || 0);
+    });
+    cacheSet(cacheKey, allPayments);
+    STATE._allPayments = allPayments;
+    renderPayments(allPayments);
+  }
 }
 
 function renderPayments(payments) {
@@ -3276,10 +3327,14 @@ async function savePayment() {
     Note: document.getElementById('pay_note').value
   });
   if (res.success) {
+    cacheClear('payments_' + (STATE.user.id || 'all'));
+    cacheClear('bills_' + (STATE.user.id || 'all'));
+    cacheClear('tenants');
     const balMsg = res.balance > 0 ? ` Balance: ₹${fmt(res.balance)}` : ' Fully Paid!';
     toast('Payment recorded!' + balMsg, 'success');
     hideModal('addPaymentModal');
     loadPayments();
+    loadBills();
   } else toast(res.error, 'error');
 }
 
@@ -3358,9 +3413,14 @@ function filterPaymentBills() {
 let allExpenses = [];
 
 async function loadExpenses() {
+  const cached = cacheGet('expenses');
+  if (cached) { allExpenses = cached; renderExpenses(allExpenses); }
   const res = await api('getExpenses');
-  allExpenses = res.data || [];
-  renderExpenses(allExpenses);
+  if (res.success && res.data) {
+    allExpenses = res.data;
+    cacheSet('expenses', allExpenses);
+    renderExpenses(allExpenses);
+  }
 }
 
 function renderExpenses(expenses) {
