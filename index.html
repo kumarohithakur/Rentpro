@@ -1150,20 +1150,51 @@ tr:hover td{background:var(--surface2)}
 <div class="overlay" id="addDocumentModal">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">📎 Add Document</div>
+      <div class="modal-title">📎 Document Upload</div>
       <button class="modal-close" onclick="hideModal('addDocumentModal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Tenant</label><select id="doc_tenant"></select></div>
+      <div class="form-group"><label>Tenant Select Karo</label><select id="doc_tenant"></select></div>
       <div class="form-group"><label>Document Type</label>
-        <select id="doc_type"><option>Aadhaar</option><option>PAN Card</option><option>Agreement</option><option>Electricity Bill</option><option>Photo</option><option>Other</option></select>
+        <select id="doc_type">
+          <option>Aadhaar Card</option>
+          <option>PAN Card</option>
+          <option>Rent Agreement</option>
+          <option>Electricity Bill</option>
+          <option>Photo</option>
+          <option>Other</option>
+        </select>
       </div>
-      <div class="form-group"><label>File Name</label><input type="text" id="doc_fname" placeholder="e.g. aadhaar_front.jpg"></div>
-      <div class="form-group"><label>Google Drive Link</label><input type="url" id="doc_url" placeholder="https://drive.google.com/..."></div>
+      <!-- File Upload Area -->
+      <div class="form-group">
+        <label>File Select Karo</label>
+        <div id="doc_dropzone" onclick="document.getElementById('doc_file').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2)"
+          ondragover="event.preventDefault();this.style.borderColor='var(--primary)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleDocDrop(event)">
+          <div style="font-size:32px">📁</div>
+          <div style="font-weight:600;margin-top:8px;color:var(--text1)">Click karo ya drag karo</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px">JPG, PNG, PDF — Max 5MB</div>
+        </div>
+        <input type="file" id="doc_file" style="display:none" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" onchange="onDocFileSelect(this)">
+        <div id="doc_file_preview" style="display:none;margin-top:10px;padding:10px 14px;background:var(--primary-light);border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px">
+          <span id="doc_file_name" style="flex:1;font-weight:600"></span>
+          <span id="doc_file_size" style="color:var(--text2)"></span>
+          <button onclick="clearDocFile()" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px">✕</button>
+        </div>
+      </div>
+      <!-- Upload Progress -->
+      <div id="doc_progress" style="display:none">
+        <div style="height:6px;background:var(--surface2);border-radius:10px;overflow:hidden">
+          <div id="doc_progress_bar" style="height:100%;background:var(--primary);border-radius:10px;transition:width 0.3s;width:0%"></div>
+        </div>
+        <div id="doc_progress_text" style="font-size:12px;color:var(--text2);margin-top:6px;text-align:center">Uploading...</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="hideModal('addDocumentModal')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDocument()">Save Document</button>
+      <button class="btn btn-primary" id="doc_upload_btn" onclick="saveDocument()">📤 Drive pe Upload</button>
     </div>
   </div>
 </div>
@@ -3613,43 +3644,110 @@ async function loadDocuments() {
   if (!docs.length) { el.innerHTML = emptyState('📎', 'No documents', 'Upload tenant documents'); return; }
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
-      ${docs.map(d => `<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:32px;margin-bottom:8px">📄</div>
-            <div style="font-weight:700">${d.DocType}</div>
-            <div style="font-size:13px;color:var(--text2)">${d.TenantName}</div>
-            <div style="font-size:12px;color:var(--text2);margin-top:4px">${d.FileName}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-            <div class="actions-cell" style="margin-top:8px">
-              ${d.DriveURL && d.DriveURL !== '#' ? `<a href="${d.DriveURL}" target="_blank" class="act-btn view" data-tip="View Doc"><span class="act-icon">👁️</span></a>` : ''}
-              <button class="act-btn del" onclick="deleteDocument('${d.DocID}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>
+      ${docs.map(d => {
+        const ext = (d.FileName||'').split('.').pop().toLowerCase();
+        const icon = ext==='pdf' ? '📕' : ['jpg','jpeg','png'].includes(ext) ? '🖼️' : '📄';
+        const typeColor = d.DocType==='Aadhaar Card'?'#2563eb':d.DocType==='Rent Agreement'?'#059669':d.DocType==='Photo'?'#7c3aed':'#d97706';
+        return `<div class="card" style="padding:0;overflow:hidden">
+          <div style="background:${typeColor};padding:10px 14px;display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px">${icon}</span>
+            <div>
+              <div style="font-weight:700;color:white;font-size:13px">${d.DocType}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.8)">${d.TenantName}</div>
             </div>
           </div>
-        </div>
-      </div>`).join('')}
+          <div style="padding:12px 14px">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;word-break:break-all">📎 ${d.FileName}</div>
+            <div style="font-size:11px;color:var(--text2);margin-bottom:10px">🕐 ${d.UploadedAt ? d.UploadedAt.split(' ')[0] : ''} • ${d.UploadedBy||''}</div>
+            <div style="display:flex;gap:8px">
+              ${d.DriveURL ? `<a href="${d.DriveURL}" target="_blank" class="btn btn-sm btn-outline" style="flex:1;text-align:center;font-size:12px">👁️ View</a>` : ''}
+              <button onclick="deleteDocument('${d.DocID}','${d.FileID||''}')" class="btn btn-sm" style="background:rgba(220,38,38,0.1);color:#dc2626;border:none;font-size:12px">🗑️</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
 
-async function saveDocument() {
-  const data = {
-    TenantID: document.getElementById('doc_tenant').value,
-    DocType: document.getElementById('doc_type').value,
-    FileName: document.getElementById('doc_fname').value.trim(),
-    DriveURL: document.getElementById('doc_url').value.trim()
-  };
-  if (!data.TenantID || !data.FileName) { toast('Select tenant and enter filename', 'error'); return; }
-  const res = await api('addDocument', data);
-  if (res.success) { toast('Document added!', 'success'); hideModal('addDocumentModal'); loadDocuments(); }
-  else toast(res.error, 'error');
+let _docFile = null;
+
+function onDocFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('File 5MB se badi hai!', 'error'); return; }
+  _docFile = file;
+  const preview = document.getElementById('doc_file_preview');
+  document.getElementById('doc_file_name').textContent = '📄 ' + file.name;
+  document.getElementById('doc_file_size').textContent = (file.size/1024).toFixed(1) + ' KB';
+  preview.style.display = 'flex';
+  document.getElementById('doc_dropzone').style.display = 'none';
 }
 
-async function deleteDocument(id) {
-  const res = await api('deleteDocument', { DocID: id });
-  if (res.success) { toast('Deleted!', 'success'); loadDocuments(); }
-  else toast(res.error, 'error');
+function handleDocDrop(event) {
+  event.preventDefault();
+  document.getElementById('doc_dropzone').style.borderColor = 'var(--border)';
+  const file = event.dataTransfer.files[0];
+  if (file) { document.getElementById('doc_file').files; _docFile = file; onDocFileSelect({ files: [file] }); }
+}
+
+function clearDocFile() {
+  _docFile = null;
+  document.getElementById('doc_file').value = '';
+  document.getElementById('doc_file_preview').style.display = 'none';
+  document.getElementById('doc_dropzone').style.display = 'block';
+}
+
+async function saveDocument() {
+  const tenantId = document.getElementById('doc_tenant').value;
+  const docType  = document.getElementById('doc_type').value;
+  if (!tenantId) { toast('Tenant select karo', 'error'); return; }
+  if (!_docFile) { toast('File select karo', 'error'); return; }
+
+  const btn = document.getElementById('doc_upload_btn');
+  btn.disabled = true; btn.textContent = '⏳ Uploading...';
+  document.getElementById('doc_progress').style.display = 'block';
+  document.getElementById('doc_progress_bar').style.width = '30%';
+  document.getElementById('doc_progress_text').textContent = 'File prepare ho rahi hai...';
+
+  // File to Base64
+  const base64 = await new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+    reader.readAsDataURL(_docFile);
+  });
+
+  document.getElementById('doc_progress_bar').style.width = '60%';
+  document.getElementById('doc_progress_text').textContent = 'Google Drive pe upload ho rahi hai...';
+
+  const res = await api('addDocument', {
+    TenantID: tenantId,
+    DocType: docType,
+    FileName: _docFile.name,
+    MimeType: _docFile.type,
+    FileData: base64
+  });
+
+  document.getElementById('doc_progress_bar').style.width = '100%';
+  btn.disabled = false; btn.textContent = '📤 Drive pe Upload';
+  document.getElementById('doc_progress').style.display = 'none';
+
+  if (res.success) {
+    toast('Document Drive pe save ho gaya! ✅', 'success');
+    clearDocFile();
+    hideModal('addDocumentModal');
+    loadDocuments();
+  } else {
+    toast(res.error || 'Upload fail ho gaya', 'error');
+  }
+}
+
+async function deleteDocument(docId, fileId) {
+  confirm_action('Document Delete Karo?', 'Drive se bhi delete ho jaayega.', async () => {
+    const res = await api('deleteDocument', { DocID: docId, FileID: fileId });
+    if (res.success) { toast('Document delete ho gaya!', 'success'); loadDocuments(); }
+    else toast(res.error, 'error');
+  });
 }
 
 // ===================== USERS =====================
