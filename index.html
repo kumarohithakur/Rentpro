@@ -866,6 +866,131 @@ tr:hover td{background:var(--surface2)}
       <div id="documentsList"></div>
     </div>
 
+    <!-- ===== AGREEMENT MAKER PAGE ===== -->
+    <div class="page" id="page-agreement">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📝 Agreement Maker</div>
+          <div class="page-subtitle">Rent agreement banao, print karo, share karo</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline" onclick="clearAgreement()">🔄 Reset</button>
+          <button class="btn btn-primary" onclick="printAgreement()">🖨️ Print / PDF</button>
+        </div>
+      </div>
+
+      <!-- Tenant Auto-fill -->
+      <div class="card" style="margin-bottom:20px;padding:16px 20px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:14px">⚡ Quick Fill:</div>
+          <select id="agr_tenant_select" onchange="autoFillAgreement()" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+            <option value="">-- Tenant select karo (auto fill hoga) --</option>
+          </select>
+          <button class="btn btn-sm btn-outline" onclick="shareAgreementWhatsApp()" style="white-space:nowrap">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366" style="vertical-align:middle;margin-right:4px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp Share
+          </button>
+        </div>
+      </div>
+
+      <!-- Agreement Form -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="agreementForm">
+
+        <!-- LEFT: Landlord + Property -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div style="font-weight:800;font-size:15px;color:var(--primary);margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--primary-light)">🏠 Landlord Details</div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="agr_ll_name" placeholder="Landlord ka poora naam"></div>
+            <div class="form-group"><label>Father's Name</label><input type="text" id="agr_ll_father" placeholder="Pita ka naam"></div>
+            <div class="form-group"><label>Mobile</label><input type="tel" id="agr_ll_mobile" placeholder="10-digit mobile" maxlength="10"></div>
+            <div class="form-group"><label>Aadhaar No.</label><input type="text" id="agr_ll_aadhaar" placeholder="XXXX-XXXX-XXXX" maxlength="14"></div>
+            <div class="form-group"><label>Address</label><textarea id="agr_ll_address" rows="2" placeholder="Poora address"></textarea></div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:800;font-size:15px;color:#059669;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #d1fae5">🏢 Property Details</div>
+            <div class="form-group"><label>Property Address</label><textarea id="agr_prop_address" rows="2" placeholder="Property ka poora address"></textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label>Room / Flat No.</label><input type="text" id="agr_room_no" placeholder="Room no."></div>
+              <div class="form-group"><label>Floor</label><input type="text" id="agr_floor" placeholder="e.g. Ground, 1st"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Type</label>
+                <select id="agr_room_type"><option>Single Room</option><option>1 BHK</option><option>2 BHK</option><option>3 BHK</option><option>Studio</option></select>
+              </div>
+              <div class="form-group"><label>Furnished</label>
+                <select id="agr_furnished"><option>Unfurnished</option><option>Semi-Furnished</option><option>Furnished</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Tenant + Financial -->
+        <div>
+          <div class="card" style="margin-bottom:16px">
+            <div style="font-weight:800;font-size:15px;color:#d97706;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #fef3c7">👤 Tenant Details</div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="agr_tn_name" placeholder="Tenant ka poora naam"></div>
+            <div class="form-group"><label>Father's Name</label><input type="text" id="agr_tn_father" placeholder="Pita ka naam"></div>
+            <div class="form-group"><label>Mobile</label><input type="tel" id="agr_tn_mobile" placeholder="10-digit mobile" maxlength="10"></div>
+            <div class="form-group"><label>Aadhaar No.</label><input type="text" id="agr_tn_aadhaar" placeholder="XXXX-XXXX-XXXX" maxlength="14"></div>
+            <div class="form-group"><label>Permanent Address</label><textarea id="agr_tn_address" rows="2" placeholder="Tenant ka permanent address"></textarea></div>
+            <div class="form-group"><label>Occupation</label><input type="text" id="agr_tn_occupation" placeholder="Job / Business / Student"></div>
+          </div>
+
+          <div class="card">
+            <div style="font-weight:800;font-size:15px;color:#dc2626;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #fee2e2">💰 Financial Terms</div>
+            <div class="form-row">
+              <div class="form-group"><label>Monthly Rent (₹)</label><input type="number" id="agr_rent" placeholder="0"></div>
+              <div class="form-group"><label>Security Deposit (₹)</label><input type="number" id="agr_deposit" placeholder="0"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Rent Due Date</label><input type="number" id="agr_due_day" placeholder="5" min="1" max="31"></div>
+              <div class="form-group"><label>Late Fine (₹/day)</label><input type="number" id="agr_late_fine" placeholder="0"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Electricity</label>
+                <select id="agr_elec_type" onchange="toggleElecAgreement()">
+                  <option value="meter">As per Meter</option>
+                  <option value="fixed">Fixed Monthly</option>
+                  <option value="included">Included in Rent</option>
+                </select>
+              </div>
+              <div class="form-group" id="agr_elec_amt_grp"><label>Elec Amount (₹)</label><input type="number" id="agr_elec_amt" placeholder="0"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Maintenance (₹)</label><input type="number" id="agr_maint" placeholder="0"></div>
+              <div class="form-group"><label>Water Charges</label>
+                <select id="agr_water"><option value="included">Included</option><option value="separate">Separate</option></select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenure -->
+      <div class="card" style="margin-top:16px">
+        <div style="font-weight:800;font-size:15px;color:#7c3aed;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid #ede9fe">📅 Tenure & Terms</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="form-group"><label>Start Date</label><input type="date" id="agr_start"></div>
+          <div class="form-group"><label>Duration (Months)</label><input type="number" id="agr_duration" placeholder="11" value="11"></div>
+          <div class="form-group"><label>Lock-in Period (Months)</label><input type="number" id="agr_lockin" placeholder="6" value="6"></div>
+          <div class="form-group"><label>Notice Period (Days)</label><input type="number" id="agr_notice" placeholder="30" value="30"></div>
+          <div class="form-group"><label>Annual Increment (%)</label><input type="number" id="agr_increment" placeholder="10" value="10"></div>
+          <div class="form-group"><label>Agreement Date</label><input type="date" id="agr_date"></div>
+        </div>
+      </div>
+
+      <!-- Preview Button -->
+      <div style="text-align:center;margin-top:20px">
+        <button class="btn btn-primary btn-lg" onclick="previewAgreement()" style="padding:14px 40px;font-size:16px">
+          👁️ Preview Agreement
+        </button>
+      </div>
+
+      <!-- Agreement Preview -->
+      <div id="agreementPreview" style="display:none;margin-top:24px"></div>
+    </div>
+
     <!-- ===== USERS PAGE ===== -->
     <div class="page" id="page-users">
       <div class="page-header">
@@ -1501,6 +1626,7 @@ const NAV_ADMIN = [
   { section: 'Records', items: [
     { id: 'inventory', icon: '📦', label: 'Inventory' },
     { id: 'documents', icon: '📎', label: 'Documents' },
+    { id: 'agreement', icon: '📝', label: 'Agreement Maker' },
     { id: 'users', icon: '👤', label: 'Users' }
   ]}
 ];
@@ -2289,6 +2415,7 @@ function loadPage(page) {
     case 'expenses': loadExpenses(); break;
     case 'inventory': loadInventory(); break;
     case 'documents': loadDocuments(); break;
+    case 'agreement': loadAgreementPage(); break;
     case 'users': loadUsers(); break;
     case 'audit': loadAuditLogs(); break;
   }
@@ -2302,6 +2429,7 @@ function handleTopbarAction() {
     bills: () => openGenerateBill(),
     payments: () => showModal('addPaymentModal'),
     expenses: () => showModal('addExpenseModal'),
+    agreement: () => printAgreement(),
     inventory: () => showModal('addInventoryModal'),
     documents: () => showModal('addDocumentModal'),
     users: () => showModal('addUserModal'),
@@ -2748,7 +2876,12 @@ function renderTenants(tenants) {
               </div>` : ''}
               ${dues > 0 ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#dc2626">
                 <span style="font-size:11px;font-weight:600;min-width:52px">Dues:</span><span style="font-weight:700">₹${fmt(dues)}</span>
-              </div>` : `<div style="font-size:12px;color:var(--success);font-weight:600">✅ No dues</div>`}
+              </div>
+              <a href="#" onclick="sendDuesWhatsApp('${t.Mobile}','${t.Name}','${t.RoomNo}',${dues});return false;"
+                style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;margin-top:4px;padding:3px 8px;background:#f0fdf4;border-radius:6px;border:1px solid #bbf7d0">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WhatsApp Reminder
+              </a>` : `<div style="font-size:12px;color:var(--success);font-weight:600">✅ No dues</div>`}
             </div>
             <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
               <span class="badge ${t.Status === 'Active' ? 'badge-success' : 'badge-secondary'}">${t.Status}</span>
@@ -3748,6 +3881,394 @@ async function deleteDocument(docId, fileId) {
     if (res.success) { toast('Document delete ho gaya!', 'success'); loadDocuments(); }
     else toast(res.error, 'error');
   });
+}
+
+// ===================== AGREEMENT MAKER =====================
+function sendDuesWhatsApp(mobile, name, roomNo, dues) {
+  // Get pending bill details for this tenant
+  const tenantBills = (allBills || []).filter(b =>
+    b.RoomNo == roomNo && b.Status !== 'Paid'
+  ).sort((a,b) => {
+    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
+    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
+    return aVal - bVal;
+  });
+
+  let billDetails = '';
+  if (tenantBills.length > 0) {
+    billDetails = tenantBills.map(b => {
+      const paid = (STATE._allPayments||[]).filter(p=>p.BillID===b.BillID).reduce((s,p)=>s+(parseFloat(p.AmountPaid)||0),0);
+      const bal = Math.max(0, parseFloat(b.TotalAmount) - paid);
+      return `  📋 ${b.Month}/${b.Year}: ₹${bal.toLocaleString('en-IN')} (Due: ${b.DueDate||'—'})`;
+    }).join('\n');
+  }
+
+  const today = new Date().toLocaleDateString('en-IN');
+  const msg = `🏠 *RentPro - Rent Reminder*
+
+Namaskar *${name}* ji! 🙏
+
+Aapke Room *${roomNo}* ka rent baaki hai:
+
+${billDetails}
+
+💰 *Kul Baaki: ₹${Math.round(dues).toLocaleString('en-IN')}*
+
+Kripya *jald se jald* payment karein aur late fine se bachein.
+
+_Reminder Date: ${today}_
+_— RentPro Property Manager_`;
+
+  window.open('https://wa.me/91' + String(mobile) + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ===================== AGREEMENT MAKER =====================
+async function loadAgreementPage() {
+  // Tenant dropdown populate karo
+  const sel = document.getElementById('agr_tenant_select');
+  if (!sel) return;
+  if (!allTenants.length) {
+    const res = await api('getTenants');
+    allTenants = res.data || [];
+  }
+  sel.innerHTML = '<option value="">-- Tenant select karo (auto fill hoga) --</option>' +
+    allTenants.filter(t => t.Status === 'Active').map(t =>
+      `<option value="${t.TenantID}">${t.Name} — Room ${t.RoomNo}</option>`
+    ).join('');
+
+  // Today's date set karo
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('agr_date').value = today;
+  document.getElementById('agr_start').value = today;
+
+  // Admin ka naam landlord mein pre-fill
+  if (STATE.user) {
+    document.getElementById('agr_ll_name').value = STATE.user.name || '';
+    document.getElementById('agr_ll_mobile').value = STATE.user.mobile || '';
+  }
+}
+
+function autoFillAgreement() {
+  const tenantId = document.getElementById('agr_tenant_select').value;
+  if (!tenantId) return;
+  const t = allTenants.find(x => x.TenantID === tenantId);
+  if (!t) return;
+
+  // Tenant details
+  document.getElementById('agr_tn_name').value = t.Name || '';
+  document.getElementById('agr_tn_mobile').value = t.Mobile || '';
+  document.getElementById('agr_tn_aadhaar').value = t.AadhaarNo || '';
+  document.getElementById('agr_tn_address').value = t.PermanentAddress || '';
+  document.getElementById('agr_tn_occupation').value = t.Occupation || '';
+
+  // Room + financial
+  document.getElementById('agr_room_no').value = t.RoomNo || '';
+  document.getElementById('agr_rent').value = t.Rent || '';
+  document.getElementById('agr_deposit').value = t.SecurityDeposit || '';
+  document.getElementById('agr_maint').value = t.Maintenance || '';
+  document.getElementById('agr_late_fine').value = t.LateFineAmount || '';
+
+  // Electricity
+  if (t.IsMetered === 'Yes') {
+    document.getElementById('agr_elec_type').value = 'meter';
+    document.getElementById('agr_elec_amt_grp').style.display = 'none';
+  } else {
+    document.getElementById('agr_elec_type').value = 'fixed';
+    document.getElementById('agr_elec_amt').value = t.ElectricityFixed || '';
+  }
+
+  // Start date from joining
+  if (t.JoiningDate) {
+    document.getElementById('agr_start').value = t.JoiningDate.split('T')[0];
+  }
+
+  toast(`✅ ${t.Name} ka data fill ho gaya!`, 'success');
+}
+
+function toggleElecAgreement() {
+  const type = document.getElementById('agr_elec_type').value;
+  document.getElementById('agr_elec_amt_grp').style.display = type === 'meter' || type === 'included' ? 'none' : 'block';
+}
+
+function clearAgreement() {
+  document.querySelectorAll('#agreementForm input, #agreementForm textarea, #agreementForm select').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  document.getElementById('agr_duration').value = '11';
+  document.getElementById('agr_lockin').value = '6';
+  document.getElementById('agr_notice').value = '30';
+  document.getElementById('agr_increment').value = '10';
+  document.getElementById('agr_tenant_select').value = '';
+  document.getElementById('agreementPreview').style.display = 'none';
+  toast('Form reset ho gaya', 'info');
+}
+
+function getAgreementData() {
+  const startDate = document.getElementById('agr_start').value;
+  const duration  = parseInt(document.getElementById('agr_duration').value) || 11;
+  let endDate = '';
+  if (startDate) {
+    const d = new Date(startDate);
+    d.setMonth(d.getMonth() + duration);
+    endDate = d.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' });
+  }
+  const elecType = document.getElementById('agr_elec_type').value;
+  const elecAmt  = document.getElementById('agr_elec_amt').value;
+  const elecText = elecType === 'meter' ? 'As per meter reading' : elecType === 'included' ? 'Included in rent' : `Fixed ₹${elecAmt}/month`;
+
+  return {
+    agrDate:    document.getElementById('agr_date').value ? new Date(document.getElementById('agr_date').value).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '___________',
+    llName:     document.getElementById('agr_ll_name').value || '_______________',
+    llFather:   document.getElementById('agr_ll_father').value || '_______________',
+    llMobile:   document.getElementById('agr_ll_mobile').value || '_______________',
+    llAadhaar:  document.getElementById('agr_ll_aadhaar').value || '______-______-______',
+    llAddress:  document.getElementById('agr_ll_address').value || '_______________',
+    tnName:     document.getElementById('agr_tn_name').value || '_______________',
+    tnFather:   document.getElementById('agr_tn_father').value || '_______________',
+    tnMobile:   document.getElementById('agr_tn_mobile').value || '_______________',
+    tnAadhaar:  document.getElementById('agr_tn_aadhaar').value || '______-______-______',
+    tnAddress:  document.getElementById('agr_tn_address').value || '_______________',
+    tnOccup:    document.getElementById('agr_tn_occupation').value || '_______________',
+    propAddress:document.getElementById('agr_prop_address').value || '_______________',
+    roomNo:     document.getElementById('agr_room_no').value || '___',
+    floor:      document.getElementById('agr_floor').value || '___',
+    roomType:   document.getElementById('agr_room_type').value,
+    furnished:  document.getElementById('agr_furnished').value,
+    rent:       document.getElementById('agr_rent').value || '0',
+    deposit:    document.getElementById('agr_deposit').value || '0',
+    dueDay:     document.getElementById('agr_due_day').value || '5',
+    lateFine:   document.getElementById('agr_late_fine').value || '0',
+    elecText,
+    maint:      document.getElementById('agr_maint').value || '0',
+    water:      document.getElementById('agr_water').value === 'included' ? 'Included in rent' : 'Separate',
+    startDate:  startDate ? new Date(startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '___________',
+    endDate,
+    duration,
+    lockin:     document.getElementById('agr_lockin').value || '6',
+    notice:     document.getElementById('agr_notice').value || '30',
+    increment:  document.getElementById('agr_increment').value || '10',
+  };
+}
+
+function buildAgreementHTML(d, forPrint = false) {
+  const numToWords = n => {
+    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    n = parseInt(n);
+    if (!n) return 'Zero';
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n/10)] + (n%10?' '+ones[n%10]:'');
+    if (n < 1000) return ones[Math.floor(n/100)]+' Hundred'+(n%100?' '+numToWords(n%100):'');
+    return numToWords(Math.floor(n/1000))+' Thousand'+(n%1000?' '+numToWords(n%1000):'');
+  };
+
+  return `
+  <style>
+    .agr-doc { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a1a; max-width: 820px; margin: 0 auto; background: white; padding: 40px; }
+    .agr-title { text-align:center; margin-bottom: 6px; }
+    .agr-title h1 { font-size: 26px; color: #1a56db; margin: 0; letter-spacing: 2px; }
+    .agr-title p { color: #555; font-size: 13px; margin: 4px 0 0; }
+    .agr-divider { border: none; border-top: 3px solid #1a56db; margin: 16px 0; }
+    .agr-section { margin: 20px 0; }
+    .agr-section-title { font-size: 14px; font-weight: 800; color: #1a56db; border-bottom: 2px solid #dbeafe; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .agr-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    .agr-table td { padding: 7px 10px; border: 1px solid #e2e8f0; font-size: 12.5px; vertical-align: top; }
+    .agr-table td:first-child { font-weight: 700; background: #f8fafc; width: 35%; color: #374151; }
+    .agr-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .agr-clause { margin: 7px 0; padding-left: 20px; position: relative; line-height: 1.6; }
+    .agr-clause::before { content: attr(data-n)"."; position: absolute; left: 0; font-weight: 700; color: #1a56db; }
+    .agr-sig { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+    .agr-sig-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .agr-sig-box h4 { margin: 0 0 12px; font-size: 13px; color: #1a56db; border-bottom: 1px solid #dbeafe; padding-bottom: 6px; }
+    .agr-sig-line { border-bottom: 1px solid #999; margin: 28px 0 4px; }
+    .agr-footer-note { text-align: center; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px; }
+    .agr-stamp { display: inline-block; border: 3px solid #dc2626; border-radius: 50%; width: 90px; height: 90px; line-height: 84px; text-align: center; font-size: 11px; font-weight: 700; color: #dc2626; transform: rotate(-15deg); opacity: 0.7; float: right; margin: -60px 0 0; }
+    @media print { .agr-doc { padding: 20px; } }
+  </style>
+  <div class="agr-doc" id="agreementPrintArea">
+    <div class="agr-title">
+      <div style="font-size:36px;margin-bottom:4px">🏠</div>
+      <h1>RENT AGREEMENT</h1>
+      <p>किराया समझौता &nbsp;|&nbsp; Date: <strong>${d.agrDate}</strong></p>
+    </div>
+    <hr class="agr-divider">
+
+    <p style="line-height:1.7;margin:12px 0">This Rent Agreement is entered into on <strong>${d.agrDate}</strong> between the parties mentioned below, and both parties agree to abide by the terms and conditions mentioned herein.</p>
+
+    <!-- PARTIES -->
+    <div class="agr-2col">
+      <div class="agr-section">
+        <div class="agr-section-title">🏠 Landlord (मकान मालिक)</div>
+        <table class="agr-table">
+          <tr><td>Name</td><td><strong>${d.llName}</strong></td></tr>
+          <tr><td>Father's Name</td><td>${d.llFather}</td></tr>
+          <tr><td>Mobile</td><td>${d.llMobile}</td></tr>
+          <tr><td>Aadhaar</td><td>${d.llAadhaar}</td></tr>
+          <tr><td>Address</td><td>${d.llAddress}</td></tr>
+        </table>
+      </div>
+      <div class="agr-section">
+        <div class="agr-section-title">👤 Tenant (किरायेदार)</div>
+        <table class="agr-table">
+          <tr><td>Name</td><td><strong>${d.tnName}</strong></td></tr>
+          <tr><td>Father's Name</td><td>${d.tnFather}</td></tr>
+          <tr><td>Mobile</td><td>${d.tnMobile}</td></tr>
+          <tr><td>Aadhaar</td><td>${d.tnAadhaar}</td></tr>
+          <tr><td>Address</td><td>${d.tnAddress}</td></tr>
+          <tr><td>Occupation</td><td>${d.tnOccup}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROPERTY -->
+    <div class="agr-section">
+      <div class="agr-section-title">🏢 Property Details (संपत्ति)</div>
+      <div class="agr-2col">
+        <table class="agr-table">
+          <tr><td>Address</td><td>${d.propAddress}</td></tr>
+          <tr><td>Room / Flat No.</td><td><strong>${d.roomNo}</strong></td></tr>
+          <tr><td>Floor</td><td>${d.floor}</td></tr>
+        </table>
+        <table class="agr-table">
+          <tr><td>Type</td><td>${d.roomType}</td></tr>
+          <tr><td>Furnished</td><td>${d.furnished}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- FINANCIAL -->
+    <div class="agr-section">
+      <div class="agr-section-title">💰 Financial Terms (आर्थिक शर्तें)</div>
+      <div class="agr-2col">
+        <table class="agr-table">
+          <tr><td>Monthly Rent</td><td><strong>₹${fmt(d.rent)}</strong> (${numToWords(d.rent)} Rupees only)</td></tr>
+          <tr><td>Security Deposit</td><td>₹${fmt(d.deposit)} (${numToWords(d.deposit)} Rupees only)</td></tr>
+          <tr><td>Rent Due Date</td><td>Every month on <strong>${d.dueDay}th</strong></td></tr>
+          <tr><td>Late Fine</td><td>₹${d.lateFine}/day after due date</td></tr>
+        </table>
+        <table class="agr-table">
+          <tr><td>Electricity</td><td>${d.elecText}</td></tr>
+          <tr><td>Water</td><td>${d.water}</td></tr>
+          <tr><td>Maintenance</td><td>${d.maint > 0 ? '₹'+fmt(d.maint)+'/month' : 'Included'}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- TENURE -->
+    <div class="agr-section">
+      <div class="agr-section-title">📅 Tenure (अवधि)</div>
+      <table class="agr-table">
+        <tr><td>Start Date</td><td><strong>${d.startDate}</strong></td><td>End Date</td><td><strong>${d.endDate}</strong></td></tr>
+        <tr><td>Duration</td><td><strong>${d.duration} Months</strong></td><td>Lock-in Period</td><td>${d.lockin} Months</td></tr>
+        <tr><td>Notice Period</td><td>${d.notice} Days</td><td>Annual Increment</td><td>${d.increment}%</td></tr>
+      </table>
+    </div>
+
+    <!-- TERMS -->
+    <div class="agr-section">
+      <div class="agr-section-title">📋 Terms & Conditions (नियम व शर्तें)</div>
+      <div class="agr-clause" data-n="1">The Tenant shall pay the monthly rent of <strong>₹${fmt(d.rent)}</strong> on or before the <strong>${d.dueDay}th</strong> of every month. Delay shall attract a late fine of ₹${d.lateFine}/day.</div>
+      <div class="agr-clause" data-n="2">The Tenant shall use the premises only for residential purposes and shall not sublet, assign, or share the premises without prior written consent of the Landlord.</div>
+      <div class="agr-clause" data-n="3">The Tenant shall keep the premises clean and in good condition. Any damage caused by negligence shall be repaired at Tenant's expense.</div>
+      <div class="agr-clause" data-n="4">The Tenant shall not make any structural changes or alterations without prior written consent of the Landlord.</div>
+      <div class="agr-clause" data-n="5">The Landlord or authorized representative may inspect the premises with 24 hours prior notice.</div>
+      <div class="agr-clause" data-n="6">Security deposit of <strong>₹${fmt(d.deposit)}</strong> shall be refunded within 30 days of vacating, after deducting any outstanding dues or damages.</div>
+      <div class="agr-clause" data-n="7">Either party shall give <strong>${d.notice} days</strong> written notice before terminating this agreement. Early exit within lock-in period of ${d.lockin} months shall attract penalty.</div>
+      <div class="agr-clause" data-n="8">The Tenant shall not indulge in any illegal, immoral, or anti-social activity on the premises. Violation leads to immediate termination.</div>
+      <div class="agr-clause" data-n="9">The rent shall be increased by <strong>${d.increment}%</strong> per annum on the anniversary date of this agreement.</div>
+      <div class="agr-clause" data-n="10">Any dispute arising from this agreement shall be resolved under the jurisdiction of courts in the locality of the property.</div>
+    </div>
+
+    <!-- SIGNATURES -->
+    <div class="agr-section">
+      <div class="agr-section-title">✍️ Signatures (हस्ताक्षर)</div>
+      <div class="agr-sig">
+        <div class="agr-sig-box">
+          <h4>🏠 Landlord (मकान मालिक)</h4>
+          <p style="margin:4px 0;font-size:12px"><strong>${d.llName}</strong></p>
+          <p style="margin:4px 0;font-size:12px">Mobile: ${d.llMobile}</p>
+          <div class="agr-sig-line"></div>
+          <p style="font-size:11px;color:#888;margin:0">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: __________</p>
+        </div>
+        <div class="agr-sig-box">
+          <h4>👤 Tenant (किरायेदार)</h4>
+          <p style="margin:4px 0;font-size:12px"><strong>${d.tnName}</strong></p>
+          <p style="margin:4px 0;font-size:12px">Mobile: ${d.tnMobile}</p>
+          <div class="agr-sig-line"></div>
+          <p style="font-size:11px;color:#888;margin:0">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: __________</p>
+        </div>
+      </div>
+      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="agr-sig-box" style="background:#fafafa">
+          <h4 style="color:#555">Witness 1 (गवाह)</h4>
+          <p style="font-size:11px;color:#888;margin:4px 0">Name: ________________________</p>
+          <p style="font-size:11px;color:#888;margin:4px 0">Mobile: _______________________</p>
+          <div class="agr-sig-line"></div>
+          <p style="font-size:11px;color:#888;margin:0">Signature</p>
+        </div>
+        <div class="agr-sig-box" style="background:#fafafa">
+          <h4 style="color:#555">Witness 2 (गवाह)</h4>
+          <p style="font-size:11px;color:#888;margin:4px 0">Name: ________________________</p>
+          <p style="font-size:11px;color:#888;margin:4px 0">Mobile: _______________________</p>
+          <div class="agr-sig-line"></div>
+          <p style="font-size:11px;color:#888;margin:0">Signature</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="agr-footer-note">
+      This agreement is executed on a stamp paper of ₹_______ as required by law. &nbsp;|&nbsp; RentPro Property Manager &nbsp;|&nbsp; Generated on ${new Date().toLocaleDateString('en-IN')}
+    </div>
+  </div>`;
+}
+
+function previewAgreement() {
+  const d = getAgreementData();
+  const preview = document.getElementById('agreementPreview');
+  preview.style.display = 'block';
+  preview.innerHTML = `
+    <div style="border:2px solid var(--border);border-radius:16px;overflow:hidden;margin-top:8px">
+      <div style="background:var(--primary);padding:12px 20px;display:flex;justify-content:space-between;align-items:center">
+        <span style="color:white;font-weight:700;font-size:15px">📄 Agreement Preview</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="printAgreement()" class="btn btn-sm" style="background:white;color:var(--primary);font-weight:700">🖨️ Print / PDF</button>
+          <button onclick="shareAgreementWhatsApp()" class="btn btn-sm" style="background:#25D366;color:white;font-weight:700">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:3px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            WhatsApp
+          </button>
+        </div>
+      </div>
+      <div style="background:white;padding:0">
+        ${buildAgreementHTML(d)}
+      </div>
+    </div>`;
+  preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function printAgreement() {
+  const d = getAgreementData();
+  const html = buildAgreementHTML(d, true);
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Rent Agreement - ${d.tnName}</title>
+    <style>@media print{body{margin:0}button{display:none!important}}</style>
+    </head><body>${html}
+    <div style="text-align:center;padding:20px;display:flex;gap:12px;justify-content:center" class="no-print">
+      <button onclick="window.print()" style="padding:10px 28px;background:#1a56db;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">🖨️ Print / Save as PDF</button>
+      <button onclick="window.close()" style="padding:10px 28px;background:#f1f5f9;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
+    </div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 600);
+}
+
+function shareAgreementWhatsApp() {
+  const d = getAgreementData();
+  if (!d.tnMobile || d.tnMobile === '_______________') {
+    toast('Tenant ka mobile number fill karo pehle', 'error'); return;
+  }
+  const msg = `🏠 *RENT AGREEMENT*\n\nNamaskar *${d.tnName}* ji,\n\nAapka Rent Agreement tayar ho gaya hai.\n\n📋 *Details:*\n• Room No: ${d.roomNo}\n• Monthly Rent: ₹${fmt(d.rent)}\n• Start Date: ${d.startDate}\n• Security Deposit: ₹${fmt(d.deposit)}\n• Rent Due: Har mahine ${d.dueDay} tarikh\n\nKripya agreement padh kar sign karein.\n\n— *${d.llName}*\n📱 ${d.llMobile}\n\n_Powered by RentPro_`;
+  window.open('https://wa.me/91' + d.tnMobile.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
 }
 
 // ===================== USERS =====================
