@@ -1046,7 +1046,13 @@ tr:hover td{background:var(--surface2)}
       <button class="modal-close" onclick="hideModal('addPaymentModal')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group"><label>Select Bill</label><select id="pay_bill" onchange="onBillSelectChange()"></select></div>
+      <div class="form-group">
+        <label>Tenant Select Karo</label>
+        <select id="pay_tenant_filter" onchange="filterPaymentBills()">
+          <option value="">-- Pehle Tenant Chuno --</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Bill Select Karo</label><select id="pay_bill" onchange="onBillSelectChange()"></select></div>
       <div id="pay_remaining_info" style="display:none;padding:10px 14px;background:var(--primary-light);border-radius:8px;margin-bottom:12px;font-size:13px">
         <span id="pay_remaining_text"></span>
       </div>
@@ -2562,6 +2568,9 @@ function avatarColor(name) {
 }
 
 function renderTenants(tenants) {
+  const active = tenants.filter(t => t.Status === 'Active');
+  const vacated = tenants.filter(t => t.Status !== 'Active');
+  tenants = [...active, ...vacated];
   const el = document.getElementById('tenantsList');
   if (!tenants.length) { el.innerHTML = emptyState('👥', 'No tenants found', 'Add tenants to manage rent'); return; }
   el.innerHTML = `
@@ -2637,6 +2646,36 @@ function renderTenants(tenants) {
         </div>`;
       }).join('')}
     </div>
+    ${vacated.length > 0 ? `
+    <div style="margin-top:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:12px;color:var(--text2);font-weight:600;padding:4px 12px;background:var(--surface2);border-radius:20px">📦 Vacated Tenants (${vacated.length})</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;opacity:0.6">
+        ${vacated.map(t => {
+          const color = avatarColor(t.Name);
+          const initials = getInitials(t.Name);
+          return `<div style="background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)">
+            <div style="background:${color};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:14px">${initials}</div>
+                <div>
+                  <div style="font-weight:700;color:white;font-size:14px">${t.Name}</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.75)">Room ${t.RoomNo}</div>
+                </div>
+              </div>
+              <span style="font-size:10px;color:rgba(255,255,255,0.6);padding:3px 8px;background:rgba(0,0,0,0.2);border-radius:6px">Vacated</span>
+            </div>
+            <div style="padding:12px 16px;font-size:13px;color:var(--text2)">
+              <div>📱 ${t.Mobile}</div>
+              <div style="margin-top:4px">Check-in: ${t.JoiningDate ? t.JoiningDate.split('T')[0] : '—'}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
   `;
 }
 
@@ -2791,7 +2830,11 @@ async function loadBills() {
   const query = {};
   if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
   const res = await api('getBills', query);
-  allBills = res.data || [];
+  allBills = (res.data || []).sort((a, b) => {
+    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
+    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
+    return bVal - aVal; // Latest first
+  });
   
   // Populate month filter
   const monthFilter = document.getElementById('billMonthFilter');
@@ -2833,7 +2876,7 @@ function filterBills() {
   const month = document.getElementById('billMonthFilter').value;
   const status = document.getElementById('billStatusFilter').value;
   const filtered = allBills.filter(b =>
-    (!search || b.TenantName.toLowerCase().includes(search) || b.RoomNo.toLowerCase().includes(search) || b.BillID.toLowerCase().includes(search)) &&
+    (!search || b.TenantName.toLowerCase().includes(search) || String(b.RoomNo).toLowerCase().includes(search) || b.BillID.toLowerCase().includes(search)) &&
     (!month || `${b.Month}/${b.Year}` === month) &&
     (!status || b.Status === status)
   );
@@ -3180,8 +3223,10 @@ async function loadPayments() {
   const query = {};
   if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
   const res = await api('getPayments', query);
-  allPayments = res.data || [];
-  STATE._allPayments = allPayments; // cache for pending dues calc
+  allPayments = (res.data || []).sort((a, b) => {
+    return new Date(b.PaymentDate || b.CreatedAt || 0) - new Date(a.PaymentDate || a.CreatedAt || 0);
+  });
+  STATE._allPayments = allPayments;
   renderPayments(allPayments);
 }
 
@@ -3258,22 +3303,55 @@ function onBillSelectChange() {
 }
 
 // Load unpaid bills for payment modal - optional pre-select
+let _allUnpaidBills = [];
 async function loadUnpaidBills(preSelectBillId = null) {
   const res = await api('getBills', { Status: 'Unpaid' });
   const partial = await api('getBills', { Status: 'Partial' });
-  const bills = [...(res.data || []), ...(partial.data || [])];
+  _allUnpaidBills = [...(res.data || []), ...(partial.data || [])];
+  
+  // Sort: purane bill pehle (month/year ascending)
+  _allUnpaidBills.sort((a, b) => {
+    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
+    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
+    return aVal - bVal;
+  });
+
+  // Tenant filter populate karo
+  const tenantSel = document.getElementById('pay_tenant_filter');
+  const uniqueTenants = [...new Map(_allUnpaidBills.map(b => [b.TenantID, {id: b.TenantID, name: b.TenantName, room: b.RoomNo}])).values()];
+  tenantSel.innerHTML = '<option value="">-- Pehle Tenant Chuno --</option>' + 
+    uniqueTenants.map(t => `<option value="${t.id}">${t.name} (Room ${t.room})</option>`).join('');
+
+  // Bill dropdown khali karo
   const sel = document.getElementById('pay_bill');
-  sel.innerHTML = '<option value="">-- Bill Select Karo --</option>' + bills.map(b => {
-    const paid = (STATE._allPayments || []).filter(p => p.BillID === b.BillID).reduce((s,p)=>s+(parseFloat(p.AmountPaid)||0),0);
-    const remaining = parseFloat(b.TotalAmount) - paid;
-    return `<option value="${b.BillID}" data-amount="${remaining}">${b.TenantName} - Room ${b.RoomNo} (${b.Month}/${b.Year}) | Baaki: ₹${fmt(remaining)}</option>`;
-  }).join('');
+  sel.innerHTML = '<option value="">-- Pehle Tenant Chuno --</option>';
+
   // Pre-select karo if billId diya
   if (preSelectBillId) {
-    sel.value = preSelectBillId;
-    onBillSelectChange();
+    const bill = _allUnpaidBills.find(b => b.BillID === preSelectBillId);
+    if (bill) {
+      tenantSel.value = bill.TenantID;
+      filterPaymentBills();
+      sel.value = preSelectBillId;
+      onBillSelectChange();
+    }
   }
   document.getElementById('pay_date').value = new Date().toISOString().split('T')[0];
+}
+
+function filterPaymentBills() {
+  const tenantId = document.getElementById('pay_tenant_filter').value;
+  const sel = document.getElementById('pay_bill');
+  const filtered = tenantId ? _allUnpaidBills.filter(b => b.TenantID === tenantId) : [];
+  sel.innerHTML = tenantId 
+    ? '<option value="">-- Bill Select Karo --</option>' + filtered.map(b => {
+        const paid = (STATE._allPayments || []).filter(p => p.BillID === b.BillID).reduce((s,p)=>s+(parseFloat(p.AmountPaid)||0),0);
+        const remaining = parseFloat(b.TotalAmount) - paid;
+        return `<option value="${b.BillID}" data-amount="${remaining}">${b.Month}/${b.Year} | Baaki: ₹${fmt(remaining)}</option>`;
+      }).join('')
+    : '<option value="">-- Pehle Tenant Chuno --</option>';
+  document.getElementById('pay_remaining_info').style.display = 'none';
+  document.getElementById('pay_amount').value = '';
 }
 
 // ===================== EXPENSES =====================
