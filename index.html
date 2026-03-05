@@ -131,26 +131,156 @@ input,select,textarea{font-family:inherit}
 a{text-decoration:none;color:inherit}
 
 /* ===================== LOGIN PAGE ===================== */
+/* ── NEW SPLIT LOGIN LAYOUT ── */
 #loginPage{
   min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 50%,#0891b2 100%);
-  position:relative;overflow:hidden;
+  background:#e8eaf6;position:relative;overflow:hidden;
 }
-#loginPage::before{
-  content:'';position:absolute;width:600px;height:600px;
-  background:radial-gradient(circle,rgba(99,102,241,0.15) 0%,transparent 70%);
-  top:-100px;right:-100px;border-radius:50%;
-}
-#loginPage::after{
-  content:'';position:absolute;width:400px;height:400px;
-  background:radial-gradient(circle,rgba(6,182,212,0.12) 0%,transparent 70%);
-  bottom:-80px;left:-80px;border-radius:50%;
-}
+
+/* Desktop: split card */
 .login-card{
-  width:100%;max-width:420px;background:rgba(255,255,255,0.97);
-  border-radius:24px;padding:48px 40px;box-shadow:0 25px 80px rgba(0,0,0,0.4);
-  position:relative;z-index:1;
+  width:900px;max-width:96vw;min-height:520px;
+  background:#fff;border-radius:28px;
+  box-shadow:0 24px 80px rgba(0,0,0,0.18);
+  display:flex;overflow:hidden;position:relative;
   animation:fadeUp 0.5s ease;
+}
+
+/* LEFT panel - blue sliding panel */
+.lp-left{
+  width:42%;background:var(--primary);
+  padding:48px 40px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  position:relative;z-index:2;flex-shrink:0;
+  border-radius:0 60px 60px 0;
+  transition:transform 0.6s cubic-bezier(.77,0,.18,1),
+             border-radius 0.6s cubic-bezier(.77,0,.18,1),
+             width 0.6s cubic-bezier(.77,0,.18,1);
+}
+/* Slide state: covers full card during loading */
+.lp-left.sliding{
+  width:100%;border-radius:28px;
+}
+.lp-left-logo{
+  font-size:52px;margin-bottom:16px;
+  animation:bounce 2s ease-in-out infinite;
+}
+.lp-left h2{
+  font-family:var(--font-display);font-size:26px;font-weight:800;
+  color:#fff;margin-bottom:8px;
+}
+.lp-left p{color:rgba(255,255,255,0.8);font-size:14px;margin-bottom:28px}
+.lp-left .reg-btn{
+  border:2px solid rgba(255,255,255,0.8);background:transparent;
+  color:#fff;padding:10px 28px;border-radius:24px;
+  font-weight:700;font-size:14px;cursor:pointer;
+  transition:all 0.25s;letter-spacing:0.3px;
+}
+.lp-left .reg-btn:hover{background:rgba(255,255,255,0.15)}
+
+/* RIGHT panel - form */
+.lp-right{
+  flex:1;padding:48px 44px;display:flex;flex-direction:column;
+  justify-content:center;transition:opacity 0.3s;
+}
+.lp-right.hiding{opacity:0;pointer-events:none}
+.lp-right h2{
+  font-family:var(--font-display);font-size:30px;font-weight:800;
+  color:var(--text);margin-bottom:6px;
+}
+.lp-right .sub{color:var(--text2);font-size:14px;margin-bottom:28px}
+
+/* Input with icon */
+.lp-input-wrap{
+  position:relative;margin-bottom:16px;
+}
+.lp-input-wrap input{
+  width:100%;padding:14px 44px 14px 16px;
+  border:1.5px solid var(--border);border-radius:12px;
+  font-size:14px;font-family:var(--font-main);
+  background:#f8f9fc;color:var(--text);
+  transition:all 0.2s;box-sizing:border-box;
+  outline:none;
+}
+.lp-input-wrap input:focus{
+  border-color:var(--primary);background:#fff;
+  box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+.lp-input-wrap .lp-icon{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  color:#aaa;font-size:16px;pointer-events:none;
+}
+.lp-forgot{
+  text-align:right;margin-bottom:20px;margin-top:-8px;
+}
+.lp-forgot button{
+  background:none;border:none;color:var(--text2);
+  font-size:13px;cursor:pointer;font-family:var(--font-main);
+}
+.lp-forgot button:hover{color:var(--primary)}
+.lp-login-btn{
+  width:100%;padding:14px;background:var(--primary);
+  color:#fff;border:none;border-radius:12px;
+  font-size:15px;font-weight:700;cursor:pointer;
+  font-family:var(--font-display);letter-spacing:0.3px;
+  transition:all 0.25s;margin-bottom:20px;
+}
+.lp-login-btn:hover{background:var(--primary-dark);transform:translateY(-1px)}
+.lp-login-btn:active{transform:translateY(0)}
+
+/* Loading state inside sliding panel */
+.lp-loader{
+  display:none;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;
+}
+.lp-loader.show{display:flex}
+.lp-loader-icon{font-size:56px;animation:loaderBounce 0.7s ease-in-out infinite alternate}
+.lp-loader-dots{display:flex;gap:8px}
+.lp-loader-dots span{
+  width:9px;height:9px;background:rgba(255,255,255,0.9);
+  border-radius:50%;animation:loaderDot 1.2s ease-in-out infinite;
+}
+.lp-loader-dots span:nth-child(2){animation-delay:0.2s}
+.lp-loader-dots span:nth-child(3){animation-delay:0.4s}
+.lp-loader-text{color:#fff;font-size:16px;font-weight:700;font-family:var(--font-display)}
+.lp-loader-sub{color:rgba(255,255,255,0.65);font-size:12px}
+
+/* Role tabs inside right panel */
+.lp-roles{display:flex;gap:8px;margin-bottom:20px}
+.lp-role{
+  flex:1;padding:9px;border:1.5px solid var(--border);
+  border-radius:10px;background:#f8f9fc;
+  font-size:13px;font-weight:600;cursor:pointer;
+  color:var(--text2);transition:all 0.2s;font-family:var(--font-main);
+}
+.lp-role.active{
+  border-color:var(--primary);background:var(--primary-light);
+  color:var(--primary);
+}
+
+/* API gear */
+.lp-api-gear{
+  position:absolute;bottom:16px;right:20px;
+  background:none;border:none;font-size:16px;
+  cursor:pointer;opacity:0.35;transition:opacity 0.2s;
+}
+.lp-api-gear:hover{opacity:0.8}
+
+/* MOBILE: stack top/bottom */
+@media(max-width:640px){
+  .login-card{
+    flex-direction:column;min-height:unset;
+    border-radius:20px;margin:16px;
+  }
+  .lp-left{
+    width:100%;border-radius:0 0 40px 40px;
+    padding:32px 24px;
+  }
+  .lp-left.sliding{
+    border-radius:20px;min-height:100vh;margin:-16px;
+    position:fixed;inset:0;border-radius:0;
+  }
+  .lp-right{padding:32px 24px}
 }
 .login-logo{
   display:flex;align-items:center;gap:12px;margin-bottom:32px;
@@ -547,66 +677,79 @@ tr:hover td{background:var(--surface2)}
 
 <!-- ===================== LOGIN PAGE ===================== -->
 <div id="loginPage">
-  <div class="login-card">
-    <div class="login-logo">
-      <div class="login-logo-icon">🏠</div>
-      <div>
-        <div class="login-logo h1">RentPro</div>
-        <div class="login-logo p">Property Management System</div>
+  <div class="login-card" id="loginCard">
+
+    <!-- LEFT: Blue sliding panel -->
+    <div class="lp-left" id="lpLeft">
+      <!-- Normal state: welcome text -->
+      <div id="lpWelcome">
+        <div class="lp-left-logo">🏠</div>
+        <h2>Hello, Welcome!</h2>
+        <p>Apni property manage karo<br>RentPro ke saath</p>
+        <button class="reg-btn" onclick="toggleApiUrl()">⚙️ Configure</button>
+      </div>
+      <!-- Loading state: slides in -->
+      <div class="lp-loader" id="lpLoader">
+        <div class="lp-loader-icon">🏠</div>
+        <div class="lp-loader-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <div class="lp-loader-text" id="loaderText">Logging you in...</div>
+        <div class="lp-loader-sub">RentPro • Property Manager</div>
       </div>
     </div>
-    <h2 class="login-title">Welcome Back</h2>
-    <p class="login-sub">Sign in to manage your properties</p>
-    
-    <div class="role-tabs">
-      <button class="role-tab active" onclick="setRole('Admin')">👤 Admin / Staff</button>
-      <button class="role-tab" onclick="setRole('Tenant')">🏡 Tenant</button>
-    </div>
 
-    <div class="form-group">
-      <label>Mobile Number</label>
-      <input type="tel" id="loginMobile" placeholder="Enter your mobile number" maxlength="10">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="loginPassword" placeholder="Enter your password">
-    </div>
-    <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()" id="loginBtn">
-      Sign In
-    </button>
-    <div style="margin-top:12px;text-align:center">
-      <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--primary);font-size:13px;cursor:pointer;font-weight:600">🔑 Password bhool gaye?</button>
-    </div>
+    <!-- RIGHT: Login form -->
+    <div class="lp-right" id="lpRight">
+      <h2>Login</h2>
+      <p class="sub">Sign in to manage your properties</p>
 
-    <!-- API URL config - hidden by default, small gear to access -->
-    <div id="apiUrlSection" style="display:none;margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px">
-      <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Google Apps Script URL</label>
-      <div style="display:flex;gap:8px;margin-top:6px">
-        <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px">
-        <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">Save</button>
+      <!-- Role selector -->
+      <div class="lp-roles">
+        <button class="lp-role active" onclick="setRole('Admin')" id="roleAdminBtn">👤 Admin / Staff</button>
+        <button class="lp-role" onclick="setRole('Tenant')" id="roleTenantBtn">🏡 Tenant</button>
+      </div>
+
+      <!-- Mobile -->
+      <div class="lp-input-wrap">
+        <input type="tel" id="loginMobile" placeholder="Mobile Number" maxlength="10"
+          onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
+        <span class="lp-icon">👤</span>
+      </div>
+
+      <!-- Password -->
+      <div class="lp-input-wrap">
+        <input type="password" id="loginPassword" placeholder="Password"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <span class="lp-icon">🔒</span>
+      </div>
+
+      <!-- Forgot -->
+      <div class="lp-forgot">
+        <button onclick="showForgotPassword()">Forgot password?</button>
+      </div>
+
+      <!-- Login btn -->
+      <button class="lp-login-btn" onclick="doLogin()" id="loginBtn">Login</button>
+
+      <!-- API URL -->
+      <div id="apiUrlSection" style="display:none;padding:14px;background:var(--surface2);border-radius:10px;margin-top:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Apps Script URL</label>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <input type="text" id="apiUrlInput" placeholder="https://script.google.com/macros/s/.../exec"
+            style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px">
+          <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">Save</button>
+        </div>
       </div>
     </div>
-    <div style="text-align:right;margin-top:6px">
-      <button onclick="toggleApiUrl()" title="Backend URL configure karo" style="background:none;border:none;color:var(--border);font-size:13px;cursor:pointer;padding:2px 6px">⚙️</button>
-    </div>
+
+    <!-- Gear icon bottom right -->
+    <button class="lp-api-gear" onclick="toggleApiUrl()" title="Configure API">⚙️</button>
   </div>
 </div>
 
-<!-- ===================== LOGIN LOADING OVERLAY ===================== -->
-<div id="loginLoader" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#1e1b4b 0%,#312e81 50%,#4c1d95 100%);z-index:9999;flex-direction:column;align-items:center;justify-content:center;">
-  <div style="text-align:center">
-    <!-- Animated house icon -->
-    <div id="loaderIcon" style="font-size:64px;animation:loaderBounce 0.8s ease-in-out infinite alternate">🏠</div>
-    <!-- Dots loading bar -->
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:24px">
-      <div style="width:10px;height:10px;background:white;border-radius:50%;animation:loaderDot 1.2s ease-in-out infinite"></div>
-      <div style="width:10px;height:10px;background:white;border-radius:50%;animation:loaderDot 1.2s ease-in-out 0.2s infinite"></div>
-      <div style="width:10px;height:10px;background:white;border-radius:50%;animation:loaderDot 1.2s ease-in-out 0.4s infinite"></div>
-    </div>
-    <div id="loaderText" style="color:rgba(255,255,255,0.9);font-size:16px;font-weight:600;margin-top:20px;letter-spacing:0.5px">Loading your dashboard...</div>
-    <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:6px">RentPro • Property Manager</div>
-  </div>
-</div>
+<!-- loginLoader div kept for compatibility -->
+<div id="loginLoader" style="display:none"></div>
 
 <!-- ===================== APP LAYOUT ===================== -->
 <div id="app">
@@ -2468,9 +2611,8 @@ function demoApi(action, data) {
 // ===================== AUTH =====================
 function setRole(role) {
   STATE.loginRole = role;
-  document.querySelectorAll('.role-tab').forEach((t, i) => {
-    t.classList.toggle('active', (i === 0 && role === 'Admin') || (i === 1 && role === 'Tenant'));
-  });
+  document.getElementById('roleAdminBtn').classList.toggle('active', role === 'Admin');
+  document.getElementById('roleTenantBtn').classList.toggle('active', role === 'Tenant');
 }
 
 function toggleApiUrl() {
@@ -2507,17 +2649,34 @@ async function doLogin() {
     localStorage.setItem('rentpro_token', res.token || '');
     localStorage.setItem('rentpro_user', JSON.stringify(res.user));
 
-    // Show loader + preload ALL data in parallel during animation
-    const loader = document.getElementById('loginLoader');
-    loader.style.display = 'flex';
-    document.getElementById('loaderText').textContent = 'Fetching your data...';
+    // NEW: Slide left panel over form
+    const lpLeft  = document.getElementById('lpLeft');
+    const lpRight = document.getElementById('lpRight');
+    const lpWelcome = document.getElementById('lpWelcome');
+    const lpLoader  = document.getElementById('lpLoader');
 
-    // Preload all data while animation plays
+    // 1. Hide form, show loader in blue panel
+    lpRight.classList.add('hiding');
+    document.getElementById('loaderText').textContent = 'Logging you in...';
+
+    // 2. After brief delay, slide panel across
+    await new Promise(r => setTimeout(r, 200));
+    lpLeft.classList.add('sliding');
+    lpWelcome.style.display = 'none';
+    lpLoader.classList.add('show');
+
+    // 3. Preload all data
     await preloadAllData();
 
-    // Small pause so user sees "Almost ready"
-    await new Promise(r => setTimeout(r, 400));
-    loader.style.display = 'none';
+    // 4. Update loader text
+    document.getElementById('loaderText').textContent = 'Almost ready...';
+    await new Promise(r => setTimeout(r, 350));
+
+    // 5. Go to app
+    lpLeft.classList.remove('sliding');
+    lpLoader.classList.remove('show');
+    lpWelcome.style.display = '';
+    lpRight.classList.remove('hiding');
     initApp();
     startAutoSync();
   } else {
