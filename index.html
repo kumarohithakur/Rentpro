@@ -497,6 +497,8 @@ tr:hover td{background:var(--surface2)}
 @keyframes slideLeft{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  .skeleton{background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
   @keyframes loaderBounce{from{transform:translateY(0px) scale(1)}to{transform:translateY(-16px) scale(1.1)}}
   @keyframes loaderDot{0%,80%,100%{transform:scale(0.4);opacity:0.4}40%{transform:scale(1.2);opacity:1}}
   @keyframes loaderFadeIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
@@ -1678,35 +1680,210 @@ function isStaff() { return STATE.user && STATE.user.role === 'Staff'; }
 function isTenant() { return STATE.user && STATE.user.role === 'Tenant'; }
 function isAdminOrStaff() { return isAdmin() || isStaff(); }
 
-// ===================== CACHE SYSTEM =====================
-const CACHE_KEY = 'rentpro_cache';
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// ================================================================
+// ULTRA FAST CACHE ARCHITECTURE v2.0
+// Offline Cache + Instant UI + Background Sync + Smart Refresh
+// ================================================================
 
+const CACHE_TTL   = 5 * 60 * 1000; // 5 min fresh window
+const CACHE_STALE = 30 * 60 * 1000; // 30 min stale (offline fallback)
+const CACHE_PFX   = 'rp2_';
+
+// ── Low-level read/write ─────────────────────────────────────
 function cacheGet(key) {
   try {
-    const raw = localStorage.getItem(CACHE_KEY + '_' + key);
+    const raw = localStorage.getItem(CACHE_PFX + key);
     if (!raw) return null;
     const obj = JSON.parse(raw);
-    if (Date.now() - obj.ts > CACHE_TTL) return null; // Expired
-    return obj.data;
+    const age = Date.now() - obj.ts;
+    if (age > CACHE_STALE) return null;          // too old, discard
+    obj._stale = age > CACHE_TTL;                // flag: needs background refresh
+    obj._age   = age;
+    return obj;
   } catch(e) { return null; }
 }
 
 function cacheSet(key, data) {
   try {
-    localStorage.setItem(CACHE_KEY + '_' + key, JSON.stringify({ data, ts: Date.now() }));
-  } catch(e) {}
+    const entry = JSON.stringify({ data, ts: Date.now() });
+    localStorage.setItem(CACHE_PFX + key, entry);
+  } catch(e) {
+    // localStorage full → evict oldest entry and retry
+    evictOldestCache();
+    try { localStorage.setItem(CACHE_PFX + key, JSON.stringify({ data, ts: Date.now() })); } catch(e2) {}
+  }
 }
 
 function cacheClear(key) {
   try {
-    if (key) localStorage.removeItem(CACHE_KEY + '_' + key);
-    else {
-      // Clear all cache
-      Object.keys(localStorage).filter(k => k.startsWith(CACHE_KEY)).forEach(k => localStorage.removeItem(k));
-    }
+    if (key) { localStorage.removeItem(CACHE_PFX + key); }
+    else { Object.keys(localStorage).filter(k => k.startsWith(CACHE_PFX)).forEach(k => localStorage.removeItem(k)); }
   } catch(e) {}
 }
+
+function evictOldestCache() {
+  const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PFX));
+  let oldest = null, oldestTs = Infinity;
+  keys.forEach(k => {
+    try { const o = JSON.parse(localStorage.getItem(k)); if (o.ts < oldestTs) { oldestTs = o.ts; oldest = k; } } catch(e){}
+  });
+  if (oldest) localStorage.removeItem(oldest);
+}
+
+// ── Universal fetchWithCache ─────────────────────────────────
+// 1. Return cache instantly  2. Fetch fresh in BG  3. Update UI if changed
+const _syncInFlight = {};
+async function fetchWithCache(action, cacheKey, query = {}, onData) {
+  // Step 1: Serve from cache immediately
+  const cached = cacheGet(cacheKey);
+  if (cached) {
+    onData(cached.data, false); // false = from cache
+    if (!cached._stale) return; // Fresh — no BG fetch needed
+  }
+
+  // Step 2: Deduplicate — don't fetch same key twice simultaneously
+  if (_syncInFlight[cacheKey]) return;
+  _syncInFlight[cacheKey] = true;
+
+  try {
+    const res = await api(action, query);
+    if (res.success && res.data) {
+      const fresh = res.data;
+      const changed = JSON.stringify(fresh) !== JSON.stringify(cached?.data);
+      cacheSet(cacheKey, fresh);
+      if (changed || !cached) {
+        onData(fresh, true); // true = fresh from API
+        if (cached) toastSubtle('🔄 Data updated');
+      }
+    }
+  } catch(e) {
+    if (!cached) onData([], false); // Offline, no cache → empty
+  } finally {
+    _syncInFlight[cacheKey] = false;
+  }
+}
+
+// ── Preload on Login (parallel fetch all) ───────────────────
+async function preloadAllData() {
+  const isTen = isTenant();
+  const tenantQ = isTen ? { TenantID: STATE.user.id } : {};
+
+  const tasks = [
+    { action: 'getTenants',  key: 'tenants',  q: {} },
+    { action: 'getBills',    key: 'bills_all', q: tenantQ },
+    { action: 'getPayments', key: 'payments_all', q: tenantQ },
+    { action: 'getRooms',    key: 'rooms',    q: {} },
+    { action: 'getProperties', key: 'properties', q: {} },
+  ];
+
+  const updateLoader = (msg) => {
+    const el = document.getElementById('loaderText');
+    if (el) el.textContent = msg;
+  };
+
+  updateLoader('Fetching your data...');
+  try {
+    const results = await Promise.all(
+      tasks.map(t => api(t.action, t.q).then(r => ({ key: t.key, data: r.data || [] })).catch(() => ({ key: t.key, data: [] })))
+    );
+    results.forEach(r => {
+      cacheSet(r.key, r.data);
+    });
+
+    // Hydrate global arrays from preloaded data
+    const byKey = Object.fromEntries(results.map(r => [r.key, r.data]));
+    allTenants   = byKey['tenants']     || [];
+    allBills     = sortBillsLatestFirst(byKey['bills_all'] || []);
+    allPayments  = sortPaymentsLatestFirst(byKey['payments_all'] || []);
+    STATE.data.properties = byKey['properties'] || [];
+    STATE.data.rooms      = byKey['rooms']      || [];
+    STATE._allPayments    = allPayments;
+    updateLoader('Almost ready...');
+  } catch(e) {
+    updateLoader('Loading from cache...');
+  }
+}
+
+// ── Background Auto-Sync (runs every 3 min while app open) ──
+let _autoSyncTimer = null;
+function startAutoSync() {
+  if (_autoSyncTimer) clearInterval(_autoSyncTimer);
+  _autoSyncTimer = setInterval(() => {
+    if (document.hidden) return; // Don't sync if tab not visible
+    const page = STATE.currentPage;
+    if (page === 'tenants')  bgRefreshTenants();
+    if (page === 'bills')    bgRefreshBills();
+    if (page === 'payments') bgRefreshPayments();
+    if (page === 'dashboard') refreshDashboard();
+  }, 3 * 60 * 1000);
+}
+
+async function bgRefreshTenants() {
+  const res = await api('getTenants').catch(() => null);
+  if (!res?.success) return;
+  const changed = JSON.stringify(res.data) !== JSON.stringify(allTenants);
+  if (changed) { allTenants = res.data; cacheSet('tenants', allTenants); renderTenants(allTenants); toastSubtle('🔄 Tenants updated'); }
+}
+async function bgRefreshBills() {
+  const q = isTenant() ? { TenantID: STATE.user.id } : {};
+  const res = await api('getBills', q).catch(() => null);
+  if (!res?.success) return;
+  const fresh = sortBillsLatestFirst(res.data || []);
+  const changed = JSON.stringify(fresh) !== JSON.stringify(allBills);
+  if (changed) { allBills = fresh; cacheSet('bills_all', allBills); renderBills(allBills); toastSubtle('🔄 Bills updated'); }
+}
+async function bgRefreshPayments() {
+  const q = isTenant() ? { TenantID: STATE.user.id } : {};
+  const res = await api('getPayments', q).catch(() => null);
+  if (!res?.success) return;
+  const fresh = sortPaymentsLatestFirst(res.data || []);
+  const changed = JSON.stringify(fresh) !== JSON.stringify(allPayments);
+  if (changed) { allPayments = fresh; STATE._allPayments = fresh; cacheSet('payments_all', allPayments); renderPayments(allPayments); toastSubtle('🔄 Payments updated'); }
+}
+
+// ── Sort helpers ─────────────────────────────────────────────
+function sortBillsLatestFirst(arr) {
+  return [...arr].sort((a,b) => (parseInt(b.Year)*100+parseInt(b.Month)) - (parseInt(a.Year)*100+parseInt(a.Month)));
+}
+function sortPaymentsLatestFirst(arr) {
+  return [...arr].sort((a,b) => new Date(b.PaymentDate||b.CreatedAt||0) - new Date(a.PaymentDate||a.CreatedAt||0));
+}
+
+// ── Skeleton UI ──────────────────────────────────────────────
+function skeletonCards(n = 3) {
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">' +
+    Array(n).fill(0).map(() => `
+    <div class="card" style="padding:0;overflow:hidden;animation:shimmer 1.5s infinite">
+      <div style="height:70px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite"></div>
+      <div style="padding:14px">
+        <div style="height:12px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;margin-bottom:8px;width:70%"></div>
+        <div style="height:10px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;width:50%"></div>
+      </div>
+    </div>`).join('') + '</div>';
+}
+
+function skeletonTable(rows = 4) {
+  return `<div class="table-wrap"><table><thead><tr>
+    ${Array(5).fill(0).map(()=>`<th><div style="height:10px;background:#e2e8f0;border-radius:4px"></div></th>`).join('')}
+  </tr></thead><tbody>` +
+  Array(rows).fill(0).map(()=>`<tr>${Array(5).fill(0).map(()=>`
+    <td><div style="height:10px;background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px"></div></td>`).join('')}</tr>`).join('') +
+  '</tbody></table></div>';
+}
+
+// ── Subtle toast (non-intrusive) ─────────────────────────────
+function toastSubtle(msg) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,30,0.85);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;z-index:9999;transition:all 0.3s;opacity:0;backdrop-filter:blur(4px)';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2000);
+}
+
+// ── Offline mode detector ────────────────────────────────────
+window.addEventListener('online',  () => { toastSubtle('🌐 Back online — syncing...'); bgRefreshTenants(); bgRefreshBills(); bgRefreshPayments(); });
+window.addEventListener('offline', () => toastSubtle('📴 Offline mode — showing cached data'));
 
 // ===================== API =====================
 async function api(action, data = {}) {
@@ -2277,18 +2454,20 @@ async function doLogin() {
     STATE.user = res.user;
     localStorage.setItem('rentpro_token', res.token || '');
     localStorage.setItem('rentpro_user', JSON.stringify(res.user));
-    // Show loading animation
+
+    // Show loader + preload ALL data in parallel during animation
     const loader = document.getElementById('loginLoader');
-    const loaderText = document.getElementById('loaderText');
     loader.style.display = 'flex';
-    const msgs = ['Logging you in...', 'Loading your data...', 'Almost ready...'];
-    let i = 0;
-    const interval = setInterval(() => { if (loaderText && msgs[++i]) loaderText.textContent = msgs[i]; }, 800);
-    setTimeout(() => {
-      clearInterval(interval);
-      loader.style.display = 'none';
-      initApp();
-    }, 1800);
+    document.getElementById('loaderText').textContent = 'Fetching your data...';
+
+    // Preload all data while animation plays
+    await preloadAllData();
+
+    // Small pause so user sees "Almost ready"
+    await new Promise(r => setTimeout(r, 400));
+    loader.style.display = 'none';
+    initApp();
+    startAutoSync();
   } else {
     toast(res.error || 'Login failed', 'error');
   }
@@ -2774,28 +2953,24 @@ async function deleteRoom(id, no) {
 let allTenants = [];
 
 async function loadTenants() {
-  const cached = cacheGet('tenants');
-  if (cached) { allTenants = cached; STATE.data.tenants = allTenants; }
-  
-  // Bills aur payments bhi load karo dues ke liye
+  const el = document.getElementById('tenantsList');
+  if (!el.innerHTML || el.innerHTML.includes('emptyState')) el.innerHTML = skeletonCards(4);
+
+  // Bills/payments se dues calculate karne ke liye
   if (!allBills.length) {
-    const br = await api('getBills', {});
-    if (br.success) allBills = br.data || [];
+    const cached = cacheGet('bills_all');
+    if (cached) allBills = cached.data;
   }
-  if (!STATE._allPayments || !STATE._allPayments.length) {
-    const pr = await api('getPayments', {});
-    if (pr.success) STATE._allPayments = pr.data || [];
+  if (!STATE._allPayments?.length) {
+    const cached = cacheGet('payments_all');
+    if (cached) STATE._allPayments = cached.data;
   }
-  
-  if (cached) renderTenants(allTenants);
-  
-  const res = await api('getTenants');
-  if (res.success && res.data) {
-    allTenants = res.data;
+
+  await fetchWithCache('getTenants', 'tenants', {}, (data, isFresh) => {
+    allTenants = data;
     STATE.data.tenants = allTenants;
-    cacheSet('tenants', allTenants);
     renderTenants(allTenants);
-  }
+  });
 }
 
 function getInitials(name) {
@@ -3072,27 +3247,17 @@ async function vacateTenant(id, name) {
 let allBills = [];
 
 async function loadBills() {
-  const query = {};
-  if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
-  const cacheKey = 'bills_' + (STATE.user.id || 'all');
-  // Cache se turant dikhao
-  const cached = cacheGet(cacheKey);
-  if (cached) { allBills = cached; renderBills(allBills); }
-  // Background mein fresh
-  const res = await api('getBills', query);
-  if (res.success && res.data) {
-    allBills = res.data.sort((a, b) => {
-      const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
-      const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
-      return bVal - aVal;
-    });
-    cacheSet(cacheKey, allBills);
-    // Populate month filter
+  const el = document.getElementById('billsList');
+  if (!el.innerHTML || el.innerHTML.includes('emptyState')) el.innerHTML = skeletonTable(5);
+
+  const q = isTenant() ? { TenantID: STATE.user.id } : {};
+  await fetchWithCache('getBills', 'bills_all', q, (data, isFresh) => {
+    allBills = sortBillsLatestFirst(data);
     const monthFilter = document.getElementById('billMonthFilter');
     const months = [...new Set(allBills.map(b => `${b.Month}/${b.Year}`))];
     monthFilter.innerHTML = '<option value="">All Months</option>' + months.map(m => `<option value="${m}">${m}</option>`).join('');
     renderBills(allBills);
-  }
+  });
 }
 
 function renderBills(bills) {
@@ -3471,22 +3636,15 @@ async function markBillPaid(billId, tenantName) {
 let allPayments = [];
 
 async function loadPayments() {
-  const query = {};
-  if (STATE.user.role === 'Tenant') query.TenantID = STATE.user.id;
-  const cacheKey = 'payments_' + (STATE.user.id || 'all');
-  // Cache se turant dikhao
-  const cached = cacheGet(cacheKey);
-  if (cached) { allPayments = cached; STATE._allPayments = allPayments; renderPayments(allPayments); }
-  // Background mein fresh
-  const res = await api('getPayments', query);
-  if (res.success && res.data) {
-    allPayments = res.data.sort((a, b) => {
-      return new Date(b.PaymentDate || b.CreatedAt || 0) - new Date(a.PaymentDate || a.CreatedAt || 0);
-    });
-    cacheSet(cacheKey, allPayments);
+  const el = document.getElementById('paymentsList');
+  if (!el.innerHTML || el.innerHTML.includes('emptyState')) el.innerHTML = skeletonTable(5);
+
+  const q = isTenant() ? { TenantID: STATE.user.id } : {};
+  await fetchWithCache('getPayments', 'payments_all', q, (data, isFresh) => {
+    allPayments = sortPaymentsLatestFirst(data);
     STATE._allPayments = allPayments;
     renderPayments(allPayments);
-  }
+  });
 }
 
 function renderPayments(payments) {
@@ -3535,8 +3693,8 @@ async function savePayment() {
     Note: document.getElementById('pay_note').value
   });
   if (res.success) {
-    cacheClear('payments_' + (STATE.user.id || 'all'));
-    cacheClear('bills_' + (STATE.user.id || 'all'));
+    cacheClear('payments_all');
+    cacheClear('bills_all');
     cacheClear('tenants');
     const balMsg = res.balance > 0 ? ` Balance: ₹${fmt(res.balance)}` : ' Fully Paid!';
     toast('Payment recorded!' + balMsg, 'success');
@@ -4538,6 +4696,7 @@ function downloadLastBill() {
 // ===================== AUTO LOGIN =====================
 window.addEventListener('load', () => {
   if (STATE.token && STATE.user) {
+    startAutoSync();
     try {
       initApp();
     } catch (e) {
