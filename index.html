@@ -664,25 +664,6 @@ tr:hover td{background:var(--surface2)}
         <div class="loader-wrap"><div class="spinner"></div></div>
       </div>
 
-      <!-- Charts (Admin only) - Dropdown select -->
-      <div id="chartsSection" style="display:none;margin-bottom:24px">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">📊 Analytics</div>
-            <select id="chartTypeSelect" onchange="switchChart()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:white;font-weight:600;cursor:pointer">
-              <option value="monthlyIncomeExpense">Monthly Income vs Expense</option>
-              <option value="yearComparison">Year-wise Comparison</option>
-              <option value="incomeDues">Income vs Dues</option>
-              <option value="occupancy">Occupancy Status</option>
-            </select>
-          </div>
-          <div style="position:relative;min-height:260px">
-            <canvas id="mainChart" height="260"></canvas>
-          </div>
-          <div id="chartLegend" style="display:flex;gap:16px;justify-content:center;margin-top:12px;flex-wrap:wrap;font-size:13px"></div>
-        </div>
-      </div>
-
       <!-- Tenant Quick Actions -->
       <div id="tenantQuickActions" style="display:none" class="mb-4">
         <div class="quick-actions">
@@ -721,6 +702,25 @@ tr:hover td{background:var(--surface2)}
             <button class="btn btn-sm btn-outline" onclick="showPage('payments')">View All</button>
           </div>
           <div id="recentPaymentsList"><div class="loader-wrap"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- Charts (Admin only) - NICHE, CHOTA -->
+      <div id="chartsSection" style="display:none;margin-top:20px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📊 Analytics</div>
+            <select id="chartTypeSelect" onchange="switchChart()" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:white;font-weight:600;cursor:pointer">
+              <option value="monthlyIncomeExpense">Income vs Expense</option>
+              <option value="yearComparison">Year Comparison</option>
+              <option value="incomeDues">Income vs Dues</option>
+              <option value="occupancy">Occupancy</option>
+            </select>
+          </div>
+          <div style="position:relative;max-height:200px">
+            <canvas id="mainChart" height="160"></canvas>
+          </div>
+          <div id="chartLegend" style="display:flex;gap:12px;justify-content:center;margin-top:8px;flex-wrap:wrap;font-size:12px"></div>
         </div>
       </div>
 
@@ -2982,12 +2982,26 @@ function avatarColor(name) {
   return colors[Math.abs(hash) % colors.length];
 }
 
+function sortByRoom(arr) {
+  return [...arr].sort((a, b) => {
+    // Room number ko numeric sort karo (101,102,103...)
+    const ra = parseInt(String(a.RoomNo||'').replace(/\D/g,'')) || 0;
+    const rb = parseInt(String(b.RoomNo||'').replace(/\D/g,'')) || 0;
+    if (ra !== rb) return ra - rb;
+    return String(a.RoomNo||'').localeCompare(String(b.RoomNo||''));
+  });
+}
+
 function renderTenants(tenants) {
-  const active = tenants.filter(t => t.Status === 'Active');
-  const vacated = tenants.filter(t => t.Status !== 'Active');
+  // Search se filtered array aata hai — isko sort karo, replace mat karo
+  const active  = sortByRoom((tenants || []).filter(t => t.Status === 'Active'));
+  const vacated = sortByRoom((tenants || []).filter(t => t.Status !== 'Active'));
   tenants = [...active, ...vacated];
   const el = document.getElementById('tenantsList');
-  if (!tenants.length) { el.innerHTML = emptyState('👥', 'No tenants found', 'Add tenants to manage rent'); return; }
+  if (!tenants.length) {
+    el.innerHTML = emptyState('🔍', 'Koi tenant nahi mila', 'Search term change karo ya filter hatao');
+    return;
+  }
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
       ${tenants.map(t => {
@@ -3100,10 +3114,15 @@ function renderTenants(tenants) {
 }
 
 function filterTenants() {
-  const search = document.getElementById('tenantSearch').value.toLowerCase();
+  const search = document.getElementById('tenantSearch').value.toLowerCase().trim();
   const status = document.getElementById('tenantStatusFilter').value;
   let filtered = allTenants.filter(t =>
-    (!search || t.Name.toLowerCase().includes(search) || t.Mobile.includes(search) || t.RoomNo.toLowerCase().includes(search)) &&
+    (!search || 
+      (t.Name||'').toLowerCase().includes(search) ||
+      String(t.Mobile||'').includes(search) ||
+      String(t.RoomNo||'').toLowerCase().includes(search) ||
+      (t.AadhaarNo||'').includes(search)
+    ) &&
     (!status || t.Status === status)
   );
   renderTenants(filtered);
@@ -3288,11 +3307,16 @@ function renderBills(bills) {
 }
 
 function filterBills() {
-  const search = document.getElementById('billSearch').value.toLowerCase();
+  const search = document.getElementById('billSearch').value.toLowerCase().trim();
   const month = document.getElementById('billMonthFilter').value;
   const status = document.getElementById('billStatusFilter').value;
   const filtered = allBills.filter(b =>
-    (!search || b.TenantName.toLowerCase().includes(search) || String(b.RoomNo).toLowerCase().includes(search) || b.BillID.toLowerCase().includes(search)) &&
+    (!search || 
+      (b.TenantName||'').toLowerCase().includes(search) ||
+      String(b.RoomNo||'').toLowerCase().includes(search) ||
+      (b.BillID||'').toLowerCase().includes(search) ||
+      String(b.TotalAmount||'').includes(search)
+    ) &&
     (!month || `${b.Month}/${b.Year}` === month) &&
     (!status || b.Status === status)
   );
@@ -3672,10 +3696,16 @@ function renderPayments(payments) {
 }
 
 function filterPayments() {
-  const search = document.getElementById('paymentSearch').value.toLowerCase();
+  const search = document.getElementById('paymentSearch').value.toLowerCase().trim();
   const mode = document.getElementById('paymentModeFilter').value;
   const filtered = allPayments.filter(p =>
-    (!search || p.TenantName.toLowerCase().includes(search)) &&
+    (!search || 
+      (p.TenantName||'').toLowerCase().includes(search) ||
+      String(p.BillID||'').toLowerCase().includes(search) ||
+      String(p.PaymentID||'').toLowerCase().includes(search) ||
+      String(p.RoomNo||'').toLowerCase().includes(search) ||
+      String(p.AmountPaid||'').includes(search)
+    ) &&
     (!mode || p.PaymentMode === mode)
   );
   renderPayments(filtered);
