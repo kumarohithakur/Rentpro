@@ -1122,6 +1122,24 @@ tr:hover td{background:var(--surface2)}
         </div>
       </div>
       <hr class="section-divider">
+      <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">💧 Water Charges</h4>
+      <div class="form-row">
+        <div class="form-group"><label>Water Type</label>
+          <select id="tn_water_type" onchange="toggleWaterFields('tn')">
+            <option value="None">Included / None</option>
+            <option value="Fixed">Fixed Monthly</option>
+            <option value="Usage">Usage Based (per Bottle/Unit)</option>
+          </select>
+        </div>
+        <div class="form-group" id="tn_water_amt_grp" style="display:none"><label>Water Amount (₹)</label><input type="number" id="tn_water_amount" placeholder="0" min="0"></div>
+      </div>
+      <div id="tn_water_usage_grp" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>Rate Per Bottle/Unit (₹)</label><input type="number" id="tn_water_rate" placeholder="e.g. 10" min="0"></div>
+          <div class="form-group"><label>Starting Bottle Count</label><input type="number" id="tn_water_startread" placeholder="0" min="0"></div>
+        </div>
+      </div>
+      <hr class="section-divider">
       <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Late Fine & Old Dues</h4>
       <div class="form-row">
         <div class="form-group"><label>Due Day (of month)</label><input type="number" id="tn_dueday" value="5" min="1" max="28"></div>
@@ -1175,6 +1193,14 @@ tr:hover td{background:var(--surface2)}
         <label>Current Meter Reading</label>
         <input type="number" id="gb_reading" placeholder="Enter current reading">
         <p class="text-xs text-muted" id="gb_prev_reading" style="margin-top:4px"></p>
+      </div>
+      <div id="gb_water_group" style="display:none;background:#e0f2fe;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+        <div style="font-weight:700;font-size:13px;color:#0369a1;margin-bottom:8px">💧 Water Reading</div>
+        <div class="form-group" style="margin:0">
+          <label>Current Bottle Reading</label>
+          <input type="number" id="gb_water_reading" placeholder="Enter current bottle count" min="0">
+          <p style="font-size:12px;color:#0369a1;margin-top:4px" id="gb_water_prev_info"></p>
+        </div>
       </div>
       <div class="form-group"><label>Late Fine (₹)</label><input type="number" id="gb_latefine" placeholder="0 or auto-calculated" value="0"></div>
     </div>
@@ -1386,6 +1412,24 @@ tr:hover td{background:var(--surface2)}
       </div>
       <div id="et_meteredElecGroup" style="display:none">
         <div class="form-group"><label>Rate Per Unit (₹)</label><input type="number" id="et_rateunit" placeholder="e.g. 6 ya 7"></div>
+      </div>
+      <hr class="section-divider">
+      <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">💧 Water Charges</h4>
+      <div class="form-row">
+        <div class="form-group"><label>Water Type</label>
+          <select id="et_water_type" onchange="toggleWaterFields('et')">
+            <option value="None">Included / None</option>
+            <option value="Fixed">Fixed Monthly</option>
+            <option value="Usage">Usage Based (per Bottle/Unit)</option>
+          </select>
+        </div>
+        <div class="form-group" id="et_water_amt_grp" style="display:none"><label>Water Amount (₹)</label><input type="number" id="et_water_amount" placeholder="0" min="0"></div>
+      </div>
+      <div id="et_water_usage_grp" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>Rate Per Bottle/Unit (₹)</label><input type="number" id="et_water_rate" placeholder="e.g. 10" min="0"></div>
+          <div class="form-group"><label>Last Bottle Reading</label><input type="number" id="et_water_lastread" placeholder="0" min="0"></div>
+        </div>
       </div>
       <hr class="section-divider">
       <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Late Fine & Old Dues</h4>
@@ -2141,6 +2185,11 @@ function demoApi(action, data) {
       const oldDues = parseFloat(tenant.OldDues) || 0;
       const rent = parseFloat(tenant.RentAmount) || 0;
       const maint = parseFloat(tenant.MaintenanceAmount) || 0;
+      // Water calculation
+      const waterType = tenant.WaterType || 'None';
+      const waterKL = parseFloat(p.CurrentWaterReading || 0) - parseFloat(tenant.WaterLastRead || 0);
+      const water = waterType === 'Fixed' ? (parseFloat(tenant.WaterAmount)||0) :
+                    waterType === 'Usage' ? Math.max(0, waterKL) * (parseFloat(tenant.WaterRatePerKL)||0) : 0;
       const total = rent + elec + maint + lateFine + oldDues;
       const dueDay = parseInt(tenant.DueDay) || 5;
       // Due date = NEXT month ka dueDay (May ka bill → June 5 ko due)
@@ -2153,6 +2202,7 @@ function demoApi(action, data) {
         Month: month, Year: year, RentAmount: rent,
         PreviousReading: prevReading, CurrentReading: currReading, UnitsConsumed: units,
         RatePerUnit: rpu, ElectricAmount: elec, MaintenanceAmount: maint,
+        WaterType: waterType, WaterAmount: water, WaterKLUsed: Math.max(0,waterKL),
         LateFine: lateFine, OldDues: oldDues, OldDuesNote: tenant.OldDuesNote || '',
         TotalAmount: total, DueDate: dueDate, Status: 'Unpaid',
         GeneratedBy: userName, GeneratedAt: now
@@ -3052,6 +3102,13 @@ function renderTenants(tenants) {
                 <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Maint:</span>
                 <span><strong>₹${fmt(t.MaintenanceAmount)}</strong></span>
               </div>` : ''}
+              ${parseFloat(t.WaterAmount||0) > 0 || t.WaterType === 'Fixed' ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2)">💧 Water:</span>
+                <span><strong>₹${fmt(t.WaterAmount||0)}</strong> (${t.WaterType})</span>
+              </div>` : t.WaterType === 'Usage' ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+                <span style="color:var(--text2)">💧 Water:</span>
+                <span><strong>Usage Based</strong> @ ₹${t.WaterRatePerKL||0}/Bottle</span>
+              </div>` : ''}
               ${t.IsMetered === 'Yes' ? `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
                 <span style="color:var(--text2);font-size:11px;font-weight:600;min-width:52px">Elec:</span>
                 <span><strong>₹${fmt(t.RatePerUnit)}/unit</strong> (Meter)</span>
@@ -3142,6 +3199,12 @@ function toggleElecFields() {
   document.getElementById('meteredElecGroup').style.display = metered ? 'block' : 'none';
 }
 
+function toggleWaterFields(prefix) {
+  const type = document.getElementById(prefix + '_water_type').value;
+  document.getElementById(prefix + '_water_amt_grp').style.display  = type === 'Fixed' ? 'block' : 'none';
+  document.getElementById(prefix + '_water_usage_grp').style.display = type === 'Usage' ? 'block' : 'none';
+}
+
 function toggleLateFine() {
   document.getElementById('lateFineAmtGroup').style.display = document.getElementById('tn_latefine').value === 'Yes' ? 'block' : 'none';
 }
@@ -3170,7 +3233,11 @@ async function saveTenant() {
     LateFineAmount: document.getElementById('tn_latefinamt').value || 0,
     OldDues: document.getElementById('tn_olddues').value || 0,
     OldDuesNote: document.getElementById('tn_oldduesNote').value,
-    SecurityDeposit: document.getElementById('tn_security').value || 0
+    SecurityDeposit: document.getElementById('tn_security').value || 0,
+    WaterType:     document.getElementById('tn_water_type').value || 'None',
+    WaterAmount:   document.getElementById('tn_water_amount').value || 0,
+    WaterRatePerKL:document.getElementById('tn_water_rate').value || 0,
+    WaterStartRead:document.getElementById('tn_water_startread').value || 0  // Used as WaterLastRead for Usage type
   };
   const res = await api('addTenant', data);
   if (res.success) { toast('Tenant added successfully!', 'success'); hideModal('addTenantModal'); loadTenants(); }
@@ -3196,9 +3263,14 @@ function openEditTenant(id) {
   document.getElementById('et_olddues').value = t.OldDues || 0;
   document.getElementById('et_oldduesNote').value = t.OldDuesNote || '';
   document.getElementById('et_security').value = t.SecurityDeposit || 0;
+  document.getElementById('et_water_type').value   = t.WaterType || 'None';
+  document.getElementById('et_water_amount').value = t.WaterAmount || 0;
+  document.getElementById('et_water_rate').value   = t.WaterRatePerKL || 0;
+  document.getElementById('et_water_lastread').value = t.WaterLastRead || 0;
   // Toggle fields
   toggleEditElecFields();
   toggleEditLateFine();
+  toggleWaterFields('et');
   showModal('editTenantModal');
 }
 
@@ -3228,7 +3300,11 @@ async function saveEditTenant() {
     LateFineAmount: document.getElementById('et_latefinamt').value || 0,
     OldDues: document.getElementById('et_olddues').value || 0,
     OldDuesNote: document.getElementById('et_oldduesNote').value,
-    SecurityDeposit: document.getElementById('et_security').value || 0
+    SecurityDeposit:  document.getElementById('et_security').value || 0,
+    WaterType:        document.getElementById('et_water_type').value || 'None',
+    WaterAmount:      document.getElementById('et_water_amount').value || 0,
+    WaterRatePerKL:   document.getElementById('et_water_rate').value || 0,
+    WaterLastRead:    document.getElementById('et_water_lastread').value || 0
   };
   if (!data.Name) { toast('Naam required hai', 'error'); return; }
   const res = await api('updateTenant', data);
@@ -3344,6 +3420,7 @@ function viewBill(id) {
       <div class="bill-row"><span class="bill-label">Rent Amount</span><span class="bill-value">₹${fmt(b.RentAmount)}</span></div>
       ${b.ElectricAmount > 0 ? `<div class="bill-row"><span class="bill-label">Electricity (${b.UnitsConsumed || 0} units × ₹${b.RatePerUnit})</span><span class="bill-value">₹${fmt(b.ElectricAmount)}</span></div>` : ''}
       ${b.MaintenanceAmount > 0 ? `<div class="bill-row"><span class="bill-label">Maintenance</span><span class="bill-value">₹${fmt(b.MaintenanceAmount)}</span></div>` : ''}
+      ${(b.WaterAmount > 0 || b.WaterType === 'Fixed') ? `<div class="bill-row"><span class="bill-label">💧 Water ${b.WaterType==='Usage' ? '('+fmt(b.WaterKLUsed||0)+' Bottles)' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.WaterAmount)}</span></div>` : ''}
       ${b.LateFine > 0 ? `<div class="bill-row"><span class="bill-label">Late Fine</span><span class="bill-value text-danger">₹${fmt(b.LateFine)}</span></div>` : ''}
       ${b.OldDues > 0 ? `<div class="bill-row"><span class="bill-label">Old Dues (${b.OldDuesNote || ''})</span><span class="bill-value text-warning">₹${fmt(b.OldDues)}</span></div>` : ''}
       <div class="bill-row total"><span class="bill-label">TOTAL DUE</span><span class="bill-value text-primary">₹${fmt(b.TotalAmount)}</span></div>
@@ -3595,9 +3672,10 @@ ${forPrint ? '<script>window.onload=function(){window.print()}<\/script>' : ''}
     <div class="info-item"><div class="info-label">Due Date</div><div class="info-value">${b.DueDate}</div></div>
   </div>
   <div class="bill-row"><span class="bill-label">Rent Amount</span><span class="bill-value">₹${fmt(b.RentAmount)}</span></div>
-  ${b.ElectricAmount > 0 ? `<div class="bill-row"><span class="bill-label">Electricity ${b.UnitsConsumed > 0 ? '('+b.UnitsConsumed+' units × ₹'+b.RatePerUnit+')' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.ElectricAmount)}</span></div>` : ''}
-  ${b.MaintenanceAmount > 0 ? `<div class="bill-row"><span class="bill-label">Maintenance</span><span class="bill-value">₹${fmt(b.MaintenanceAmount)}</span></div>` : ''}
-  ${b.LateFine > 0 ? `<div class="bill-row"><span class="bill-label">Late Fine</span><span class="bill-value red">₹${fmt(b.LateFine)}</span></div>` : ''}
+  ${b.ElectricAmount > 0 ? `<div class="bill-row"><span class="bill-label">⚡ Electricity ${b.UnitsConsumed > 0 ? '('+b.UnitsConsumed+' units × ₹'+b.RatePerUnit+')' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.ElectricAmount)}</span></div>` : ''}
+  ${b.MaintenanceAmount > 0 ? `<div class="bill-row"><span class="bill-label">🔧 Maintenance</span><span class="bill-value">₹${fmt(b.MaintenanceAmount)}</span></div>` : ''}
+  ${parseFloat(b.WaterAmount||0) > 0 ? `<div class="bill-row"><span class="bill-label">💧 Water ${b.WaterType==='Usage' ? '('+parseFloat(b.WaterKLUsed||0).toFixed(1)+' Bottles × ₹'+b.WaterRatePerKL+')' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.WaterAmount)}</span></div>` : ''}
+  ${b.LateFine > 0 ? `<div class="bill-row"><span class="bill-label">⚠️ Late Fine</span><span class="bill-value red">₹${fmt(b.LateFine)}</span></div>` : ''}
   ${b.OldDues > 0 ? `<div class="bill-row"><span class="bill-label">Old Dues${b.OldDuesNote ? ' ('+b.OldDuesNote+')' : ''}</span><span class="bill-value amber">₹${fmt(b.OldDues)}</span></div>` : ''}
   <div class="total-row"><span class="total-label">TOTAL DUE</span><span class="total-value">₹${fmt(b.TotalAmount)}</span></div>
   <div class="footer">Generated by RentPro &nbsp;•&nbsp; ${new Date().toLocaleDateString('en-IN')}<br>Computer generated bill — No signature required</div>
@@ -3609,7 +3687,15 @@ async function openGenerateBill() {
   const res = await api('getTenants', { Status: 'Active' });
   const tenants = (res.data || []).filter(t => t.Status === 'Active');
   const select = document.getElementById('gb_tenant');
-  select.innerHTML = '<option value="">Select Tenant</option>' + tenants.map(t => `<option value="${t.TenantID}" data-metered="${t.IsMetered}" data-reading="${t.LastMeterReading}">${t.Name} (Room ${t.RoomNo})</option>`).join('');
+  select.innerHTML = '<option value="">Select Tenant</option>' + tenants.map(t =>
+    `<option value="${t.TenantID}"
+      data-metered="${t.IsMetered}"
+      data-reading="${t.LastMeterReading||0}"
+      data-wtype="${t.WaterType||'None'}"
+      data-wlast="${t.WaterLastRead||0}"
+      data-wrate="${t.WaterRatePerKL||0}"
+    >${t.Name} (Room ${t.RoomNo})</option>`
+  ).join('');
   const now = new Date();
   document.getElementById('gb_month').value = now.getMonth() + 1;
   document.getElementById('gb_year').value = now.getFullYear();
@@ -3619,11 +3705,22 @@ async function openGenerateBill() {
 function onBillTenantChange() {
   const sel = document.getElementById('gb_tenant');
   const opt = sel.selectedOptions[0];
-  const isMetered = opt && opt.dataset.metered === 'Yes';
-  const lastReading = opt && opt.dataset.reading;
+  if (!opt || !opt.value) return;
+
+  // Electricity
+  const isMetered = opt.dataset.metered === 'Yes';
   document.getElementById('gb_reading_group').style.display = isMetered ? 'block' : 'none';
-  if (isMetered && lastReading) {
-    document.getElementById('gb_prev_reading').textContent = `Previous reading: ${lastReading}`;
+  if (isMetered) document.getElementById('gb_prev_reading').textContent = `Previous reading: ${opt.dataset.reading||0}`;
+
+  // Water
+  const wType = opt.dataset.wtype || 'None';
+  const wGrp  = document.getElementById('gb_water_group');
+  if (wGrp) {
+    wGrp.style.display = wType === 'Usage' ? 'block' : 'none';
+    if (wType === 'Usage') {
+      document.getElementById('gb_water_prev_info').textContent =
+        `Previous reading: ${opt.dataset.wlast||0} Bottles  |  Rate: ₹${opt.dataset.wrate||0}/Bottle`;
+    }
   }
 }
 
@@ -3635,6 +3732,7 @@ async function saveBill() {
   const data = {
     TenantID: tenantId, Month: month, Year: year,
     CurrentReading: document.getElementById('gb_reading').value,
+    CurrentWaterReading: document.getElementById('gb_water_reading')?.value || 0,
     LateFine: document.getElementById('gb_latefine').value
   };
   const res = await api('generateBill', data);
