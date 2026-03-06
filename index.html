@@ -4863,9 +4863,25 @@ async function loadAuditLogs() {
 // ===================== PAY NOW (TENANT) =====================
 async function showPayNow() {
   const adminsData = STATE.data.adminUPIs || [];
-  const bills = await api('getBills', { TenantID: STATE.user.id });
-  const unpaidBills = (bills.data || []).filter(b => b.Status !== 'Paid');
-  const totalDue = unpaidBills.reduce((s, b) => s + parseFloat(b.TotalAmount || 0), 0);
+
+  // Cache se lo — API call nahi (preloadAllData pe already load ho chuka hai)
+  let unpaidBills = (allBills || []).filter(b =>
+    b.TenantID === STATE.user.id && b.Status !== 'Paid'
+  );
+
+  // Agar cache empty hai (pehli baar) tabhi API call karo
+  if (!unpaidBills.length && allBills.length === 0) {
+    const bills = await api('getBills', { TenantID: STATE.user.id });
+    unpaidBills = (bills.data || []).filter(b => b.Status !== 'Paid');
+  }
+
+  // Dues accurately calculate karo (payments minus karke)
+  const totalDue = unpaidBills.reduce((s, b) => {
+    const paid = (allPayments || [])
+      .filter(p => p.BillID === b.BillID)
+      .reduce((ps, p) => ps + (parseFloat(p.AmountPaid) || 0), 0);
+    return s + Math.max(0, parseFloat(b.TotalAmount || 0) - paid);
+  }, 0);
 
   const container = document.getElementById('payNowAdmins');
   container.innerHTML = `
