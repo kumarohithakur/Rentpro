@@ -2029,6 +2029,11 @@ const BOTTOM_NAV_TENANT = [
 // Role helpers - puri app mein use karo
 function isAdmin() { return STATE.user && STATE.user.role === 'Admin'; }
 function isStaff() { return STATE.user && STATE.user.role === 'Staff'; }
+function fmt(n) {
+  const num = parseFloat(n) || 0;
+  return num.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
 function isTenant() { return STATE.user && STATE.user.role === 'Tenant'; }
 function isAdminOrStaff() { return isAdmin() || isStaff(); }
 
