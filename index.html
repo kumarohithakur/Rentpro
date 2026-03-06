@@ -4865,36 +4865,33 @@ function clearPhoto(prefix) {
 }
 
 async function uploadPhotoToDrive(file, tenantName) {
+  // Photo ko compress karke base64 mein save karo Google Sheet mein
+  // (Drive upload ke liye Apps Script ka "uploadTenantPhoto" action add karo)
   return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      try {
-        const base64 = e.target.result.split(',')[1];
-        const mimeType = file.type;
-        const fileName = 'Tenant_' + tenantName.replace(/\s+/g, '_') + '_' + Date.now() + '.' + file.name.split('.').pop();
-        
-        const res = await api('uploadTenantPhoto', {
-          fileName: fileName,
-          mimeType: mimeType,
-          base64Data: base64,
-          tenantName: tenantName
-        });
-        
-        if (res.success && res.fileUrl) {
-          resolve(res.fileUrl);
-        } else {
-          // Fallback: store as data URL (for demo mode)
-          resolve(e.target.result);
-        }
-      } catch(err) {
-        console.error('Upload failed:', err);
-        // Fallback: store as data URL
-        const reader2 = new FileReader();
-        reader2.onload = (e2) => resolve(e2.target.result);
-        reader2.readAsDataURL(file);
-      }
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = function() {
+      // Canvas pe resize karo — max 300x300px, quality 0.7
+      const MAX = 300;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      // Compressed base64 data URL
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+      resolve(dataUrl);
     };
-    reader.readAsDataURL(file);
+    img.onerror = function() {
+      // Fallback: direct FileReader
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    };
+    img.src = url;
   });
 }
 
@@ -5072,6 +5069,26 @@ async function sendNotification() {
 setInterval(function() {
   if (STATE && STATE.token) loadNotifications();
 }, 2 * 60 * 1000);
+
+// ================================================================
+// PAGE INIT — Theme restore + auto-login check
+// ================================================================
+(function pageInit() {
+  // 1. Theme hamesha restore karo — login se pehle bhi
+  const savedTheme = localStorage.getItem('rentpro_theme') || 'ocean';
+  if (typeof applyTheme === 'function') {
+    applyTheme(savedTheme);
+  } else {
+    // applyTheme load nahi hua to manually attribute set karo
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }
+
+  // 2. Agar already logged in hai to app open karo
+  if (STATE.token && STATE.user) {
+    if (typeof startAutoSync === 'function') startAutoSync();
+    if (typeof initApp === 'function') initApp();
+  }
+})();
 
 </script>
 
