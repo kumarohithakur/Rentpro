@@ -3443,7 +3443,7 @@ function renderTenants(tenants) {
           <div style="background:${color};padding:16px 18px;display:flex;align-items:center;justify-content:space-between">
             <div style="display:flex;align-items:center;gap:12px">
               <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:white">
-                ${t.PhotoURL ? `<img src="${t.PhotoURL}" style="width:100%;height:100%;object-fit:cover">` : initials}
+                ${(t.PhotoURL || localStorage.getItem('tenant_photo_' + t.Mobile)) ? `<img src="${t.PhotoURL || localStorage.getItem('tenant_photo_' + t.Mobile)}" style="width:100%;height:100%;object-fit:cover">` : initials}
               </div>
               <div>
                 <div style="font-weight:700;font-size:16px;color:white">${t.Name}</div>
@@ -3526,7 +3526,7 @@ function renderTenants(tenants) {
             <div style="background:${color};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
               <div style="display:flex;align-items:center;gap:10px">
                 <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:14px">
-                  ${t.PhotoURL ? `<img src="${t.PhotoURL}" style="width:100%;height:100%;object-fit:cover">` : initials}
+                  ${(t.PhotoURL || localStorage.getItem('tenant_photo_' + t.Mobile)) ? `<img src="${t.PhotoURL || localStorage.getItem('tenant_photo_' + t.Mobile)}" style="width:100%;height:100%;object-fit:cover">` : initials}
                 </div>
                 <div>
                   <div style="font-weight:700;color:white;font-size:14px">${t.Name}</div>
@@ -3616,18 +3616,28 @@ async function saveTenant() {
     PhotoURL: document.getElementById('tn_photo_url').value || ''
   };
 
-  // Upload photo to Drive if selected
+  // Photo: compress karo aur localStorage mein store karo (GET URL limit bypass)
   const photoFile = document.getElementById('tn_photo_file').files[0];
+  let compressedPhoto = '';
   if (photoFile) {
     document.getElementById('tn_photo_uploading').style.display = 'block';
-    const photoUrl = await uploadPhotoToDrive(photoFile, data.Name);
+    compressedPhoto = await uploadPhotoToDrive(photoFile, data.Name);
     document.getElementById('tn_photo_uploading').style.display = 'none';
-    if (photoUrl) data.PhotoURL = photoUrl;
-    else data.PhotoURL = '';
   }
+  // PhotoURL Google Sheet mein nahi bhejte (GET URL too long)
+  // Baad mein mobile number se localStorage mein store karenge
+  delete data.PhotoURL;
 
   const res = await api('addTenant', data);
-  if (res.success) { toast('Tenant added successfully!', 'success'); hideModal('addTenantModal'); loadTenants(); }
+  if (res.success) {
+    // Photo localStorage mein save karo by mobile
+    if (compressedPhoto && data.Mobile) {
+      localStorage.setItem('tenant_photo_' + data.Mobile, compressedPhoto);
+    }
+    toast('Tenant added successfully!', 'success');
+    hideModal('addTenantModal');
+    loadTenants();
+  }
   else toast(res.error, 'error');
 }
 
@@ -3658,7 +3668,7 @@ function openEditTenant(id) {
   toggleEditLateFine();
   toggleWaterFields('et');
   // Load existing photo
-  const etPhotoUrl = t.PhotoURL || '';
+  const etPhotoUrl = t.PhotoURL || localStorage.getItem('tenant_photo_' + t.Mobile) || '';
   document.getElementById('et_photo_url').value = etPhotoUrl;
   const etPreview = document.getElementById('et_photo_preview');
   if (etPhotoUrl) {
@@ -3706,19 +3716,24 @@ async function saveEditTenant() {
   };
   if (!data.Name) { toast('Naam required hai', 'error'); return; }
 
-  // Upload new photo if selected
+  // Photo: compress karo aur localStorage mein store karo
   const photoFile = document.getElementById('et_photo_file').files[0];
   if (photoFile) {
     document.getElementById('et_photo_uploading').style.display = 'block';
-    toast('Photo upload ho rahi hai...', 'info');
-    const photoUrl = await uploadPhotoToDrive(photoFile, data.Name);
+    const compressedPhoto = await uploadPhotoToDrive(photoFile, data.Name);
     document.getElementById('et_photo_uploading').style.display = 'none';
-    if (photoUrl) data.PhotoURL = photoUrl;
+    if (compressedPhoto && data.Mobile) {
+      localStorage.setItem('tenant_photo_' + data.Mobile, compressedPhoto);
+    }
+  } else if (document.getElementById('et_photo_url').value === '') {
+    // Photo clear kiya to localStorage se bhi hatao
+    if (data.Mobile) localStorage.removeItem('tenant_photo_' + data.Mobile);
   }
+  delete data.PhotoURL;
 
   const res = await api('updateTenant', data);
   if (res.success) {
-    toast('Tenant details update ho gayi! Agle bill mein naye rates aayenge.', 'success');
+    toast('Tenant details update ho gayi!', 'success');
     hideModal('editTenantModal');
     loadTenants();
   } else toast(res.error || 'Update nahi hua', 'error');
