@@ -780,6 +780,16 @@ tr:hover td{background:var(--surface2)}
 .section-divider{border:none;border-top:1px solid var(--border);margin:20px 0}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .shadow-card{box-shadow:var(--shadow)}
+
+/* Tenant Photo Upload */
+#tn_photo_preview, #et_photo_preview {
+  transition: all 0.2s;
+}
+#tn_photo_preview:hover, #et_photo_preview:hover {
+  border-color: var(--primary) !important;
+  opacity: 0.9;
+  transform: scale(1.03);
+}
 </style>
 </head>
 <body>
@@ -1390,6 +1400,22 @@ tr:hover td{background:var(--surface2)}
       <button class="modal-close" onclick="hideModal('addTenantModal')">✕</button>
     </div>
     <div class="modal-body">
+      <!-- PHOTO UPLOAD -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:12px">
+        <div id="tn_photo_preview" onclick="document.getElementById('tn_photo_file').click()" style="width:90px;height:90px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;overflow:hidden;border:3px dashed var(--primary);flex-shrink:0">
+          👤
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">📷 Tenant Photo</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Photo Google Drive mein save hogi</div>
+          <input type="file" id="tn_photo_file" accept="image/*" style="display:none" onchange="previewPhoto('tn')">
+          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('tn_photo_file').click()">📁 Choose Photo</button>
+          <button type="button" class="btn btn-sm" id="tn_photo_clear" style="display:none;margin-left:6px;background:#fee2e2;color:#dc2626;border:none" onclick="clearPhoto('tn')">✕ Remove</button>
+        </div>
+        <div id="tn_photo_uploading" style="display:none;font-size:12px;color:var(--primary)">⏳ Uploading...</div>
+      </div>
+      <input type="hidden" id="tn_photo_url" value="">
+
       <h4 style="font-family:var(--font-display);margin-bottom:14px;font-size:14px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px">Personal Info</h4>
       <div class="form-row">
         <div class="form-group"><label>Full Name</label><input type="text" id="tn_name" placeholder="Tenant Name"></div>
@@ -1692,6 +1718,23 @@ tr:hover td{background:var(--surface2)}
     </div>
     <div class="modal-body">
       <input type="hidden" id="et_id">
+      <input type="hidden" id="et_photo_url" value="">
+
+      <!-- PHOTO UPLOAD -->
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;padding:16px;background:var(--surface2);border-radius:12px">
+        <div id="et_photo_preview" onclick="document.getElementById('et_photo_file').click()" style="width:90px;height:90px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:36px;cursor:pointer;overflow:hidden;border:3px dashed var(--primary);flex-shrink:0">
+          👤
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">📷 Tenant Photo</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Photo Google Drive mein save hogi</div>
+          <input type="file" id="et_photo_file" accept="image/*" style="display:none" onchange="previewPhoto('et')">
+          <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('et_photo_file').click()">📁 Change Photo</button>
+          <button type="button" class="btn btn-sm" id="et_photo_clear" style="display:none;margin-left:6px;background:#fee2e2;color:#dc2626;border:none" onclick="clearPhoto('et')">✕ Remove</button>
+        </div>
+        <div id="et_photo_uploading" style="display:none;font-size:12px;color:var(--primary)">⏳ Uploading...</div>
+      </div>
+
       <div style="background:var(--primary-light);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--primary)">
 
       </div>
@@ -3399,7 +3442,9 @@ function renderTenants(tenants) {
           <!-- Card Top Bar -->
           <div style="background:${color};padding:16px 18px;display:flex;align-items:center;justify-content:space-between">
             <div style="display:flex;align-items:center;gap:12px">
-              <div style="width:46px;height:46px;background:rgba(255,255,255,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:white;flex-shrink:0">${initials}</div>
+              <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2.5px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:white">
+                ${t.PhotoURL ? `<img src="${t.PhotoURL}" style="width:100%;height:100%;object-fit:cover">` : initials}
+              </div>
               <div>
                 <div style="font-weight:700;font-size:16px;color:white">${t.Name}</div>
                 <span style="background:rgba(255,255,255,0.25);color:white;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700">Room ${t.RoomNo}</span>
@@ -3480,7 +3525,9 @@ function renderTenants(tenants) {
           return `<div style="background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border)">
             <div style="background:${color};padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
               <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:14px">${initials}</div>
+                <div style="width:42px;height:42px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-weight:800;color:white;font-size:14px">
+                  ${t.PhotoURL ? `<img src="${t.PhotoURL}" style="width:100%;height:100%;object-fit:cover">` : initials}
+                </div>
                 <div>
                   <div style="font-weight:700;color:white;font-size:14px">${t.Name}</div>
                   <div style="font-size:11px;color:rgba(255,255,255,0.75)">Room ${t.RoomNo}</div>
@@ -3565,8 +3612,20 @@ async function saveTenant() {
     SecurityDeposit: document.getElementById('tn_security').value || 0,
     WaterType:     document.getElementById('tn_water_type').value || 'None',
     WaterAmount:   document.getElementById('tn_water_amount').value || 0,
-    WaterRatePerKL:document.getElementById('tn_water_rate').value || 0
+    WaterRatePerKL:document.getElementById('tn_water_rate').value || 0,
+    PhotoURL: document.getElementById('tn_photo_url').value || ''
   };
+
+  // Upload photo to Drive if selected
+  const photoFile = document.getElementById('tn_photo_file').files[0];
+  if (photoFile) {
+    document.getElementById('tn_photo_uploading').style.display = 'block';
+    const photoUrl = await uploadPhotoToDrive(photoFile, data.Name);
+    document.getElementById('tn_photo_uploading').style.display = 'none';
+    if (photoUrl) data.PhotoURL = photoUrl;
+    else data.PhotoURL = '';
+  }
+
   const res = await api('addTenant', data);
   if (res.success) { toast('Tenant added successfully!', 'success'); hideModal('addTenantModal'); loadTenants(); }
   else toast(res.error, 'error');
@@ -3598,6 +3657,18 @@ function openEditTenant(id) {
   toggleEditElecFields();
   toggleEditLateFine();
   toggleWaterFields('et');
+  // Load existing photo
+  const etPhotoUrl = t.PhotoURL || '';
+  document.getElementById('et_photo_url').value = etPhotoUrl;
+  const etPreview = document.getElementById('et_photo_preview');
+  if (etPhotoUrl) {
+    etPreview.innerHTML = '<img src="' + etPhotoUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    document.getElementById('et_photo_clear').style.display = 'inline-block';
+  } else {
+    etPreview.innerHTML = '👤';
+    document.getElementById('et_photo_clear').style.display = 'none';
+  }
+  document.getElementById('et_photo_file').value = '';
   showModal('editTenantModal');
 }
 
@@ -3630,9 +3701,21 @@ async function saveEditTenant() {
     SecurityDeposit:  document.getElementById('et_security').value || 0,
     WaterType:        document.getElementById('et_water_type').value || 'None',
     WaterAmount:      document.getElementById('et_water_amount').value || 0,
-    WaterRatePerKL:   document.getElementById('et_water_rate').value || 0
+    WaterRatePerKL:   document.getElementById('et_water_rate').value || 0,
+    PhotoURL: document.getElementById('et_photo_url').value || ''
   };
   if (!data.Name) { toast('Naam required hai', 'error'); return; }
+
+  // Upload new photo if selected
+  const photoFile = document.getElementById('et_photo_file').files[0];
+  if (photoFile) {
+    document.getElementById('et_photo_uploading').style.display = 'block';
+    toast('Photo upload ho rahi hai...', 'info');
+    const photoUrl = await uploadPhotoToDrive(photoFile, data.Name);
+    document.getElementById('et_photo_uploading').style.display = 'none';
+    if (photoUrl) data.PhotoURL = photoUrl;
+  }
+
   const res = await api('updateTenant', data);
   if (res.success) {
     toast('Tenant details update ho gayi! Agle bill mein naye rates aayenge.', 'success');
@@ -4754,6 +4837,66 @@ async function loadDocuments() {
   `;
 }
 
+
+
+// ================================================================
+// 📷 PHOTO UPLOAD SYSTEM
+// ================================================================
+
+function previewPhoto(prefix) {
+  const file = document.getElementById(prefix + '_photo_file').files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const preview = document.getElementById(prefix + '_photo_preview');
+    preview.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    document.getElementById(prefix + '_photo_clear').style.display = 'inline-block';
+    // Store base64 temporarily for upload
+    document.getElementById(prefix + '_photo_url').value = '__pending__';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto(prefix) {
+  document.getElementById(prefix + '_photo_file').value = '';
+  document.getElementById(prefix + '_photo_url').value = '';
+  document.getElementById(prefix + '_photo_preview').innerHTML = '👤';
+  document.getElementById(prefix + '_photo_clear').style.display = 'none';
+}
+
+async function uploadPhotoToDrive(file, tenantName) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const base64 = e.target.result.split(',')[1];
+        const mimeType = file.type;
+        const fileName = 'Tenant_' + tenantName.replace(/\s+/g, '_') + '_' + Date.now() + '.' + file.name.split('.').pop();
+        
+        const res = await api('uploadTenantPhoto', {
+          fileName: fileName,
+          mimeType: mimeType,
+          base64Data: base64,
+          tenantName: tenantName
+        });
+        
+        if (res.success && res.fileUrl) {
+          resolve(res.fileUrl);
+        } else {
+          // Fallback: store as data URL (for demo mode)
+          resolve(e.target.result);
+        }
+      } catch(err) {
+        console.error('Upload failed:', err);
+        // Fallback: store as data URL
+        const reader2 = new FileReader();
+        reader2.onload = (e2) => resolve(e2.target.result);
+        reader2.readAsDataURL(file);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 // ================================================================
 // 🔔 NOTIFICATION SYSTEM
