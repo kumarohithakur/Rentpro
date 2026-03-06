@@ -3949,15 +3949,17 @@ function buildBillHTML(b, forPrint) {
   const monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
   const mn = monthNames[parseInt(b.Month)] || b.Month;
   const statusColor = b.Status === 'Paid' ? '#10b981' : b.Status === 'Partial' ? '#f59e0b' : '#ef4444';
+  const _css = [
+    '*{margin:0;padding:0;box-sizing:border-box}',
+    'body{font-family:Arial,sans-serif;background:#f5f6fa;padding:24px;color:#1a1d2e}',
+    '.bill{max-width:520px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.1)}',
+    '.header{background:linear-gradient(135deg,#2563eb,#0891b2);padding:24px;color:white;display:flex;justify-content:space-between;align-items:flex-start}',
+    '.header h1{font-size:22px;font-weight:800;margin-bottom:4px}',
+    '.header p{font-size:12px;opacity:0.85}'
+  ].join('\n');
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Bill - ${b.TenantName} - ${mn} ${b.Year}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Arial,sans-serif;background:#f5f6fa;padding:24px;color:#1a1d2e}
-  .bill{max-width:520px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.1)}
-  .header{background:linear-gradient(135deg,#2563eb,#0891b2);padding:24px;color:white;display:flex;justify-content:space-between;align-items:flex-start}
-  .header h1{font-size:22px;font-weight:800;margin-bottom:4px}
-  .header p{font-size:12px;opacity:0.85}
+<style>${_css}
   .status-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;background:rgba(255,255,255,0.2);color:white}
   .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;background:#f0f4ff}
   .info-item{padding:14px 20px}
@@ -3974,9 +3976,8 @@ function buildBillHTML(b, forPrint) {
   .red{color:#ef4444}
   .amber{color:#f59e0b}
   @media print{body{background:white;padding:0}.bill{box-shadow:none;border-radius:0}}
-</style>
-${forPrint ? '<script>window.onload=function(){window.print()}<\/script>' : ''}
-</head><body>
+<\/style>${forPrint ? '<scr'+'ipt>window.onload=function(){window.print();}</sc'+'ript>' : ''}
+<\/head><body>
 <div class="bill">
   <div class="header">
     <div>
@@ -3993,1096 +3994,318 @@ ${forPrint ? '<script>window.onload=function(){window.print()}<\/script>' : ''}
     <div class="info-item"><div class="info-label">Due Date</div><div class="info-value">${b.DueDate}</div></div>
   </div>
   <div class="bill-row"><span class="bill-label">Rent Amount</span><span class="bill-value">₹${fmt(b.RentAmount)}</span></div>
-  ${b.ElectricAmount > 0 ? `<div class="bill-row"><span class="bill-label">⚡ Electricity ${b.UnitsConsumed > 0 ? '('+b.UnitsConsumed+' units × ₹'+b.RatePerUnit+')' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.ElectricAmount)}</span></div>` : ''}
-  ${b.MaintenanceAmount > 0 ? `<div class="bill-row"><span class="bill-label">🔧 Maintenance</span><span class="bill-value">₹${fmt(b.MaintenanceAmount)}</span></div>` : ''}
-  ${parseFloat(b.WaterAmount||0) > 0 ? `<div class="bill-row"><span class="bill-label">💧 Water ${b.WaterType==='Usage' ? '('+parseFloat(b.WaterKLUsed||0).toFixed(1)+' Bottles × ₹'+b.WaterRatePerKL+')' : '(Fixed)'}</span><span class="bill-value">₹${fmt(b.WaterAmount)}</span></div>` : ''}
-  ${b.LateFine > 0 ? `<div class="bill-row"><span class="bill-label">⚠️ Late Fine</span><span class="bill-value red">₹${fmt(b.LateFine)}</span></div>` : ''}
-  ${b.OldDues > 0 ? `<div class="bill-row"><span class="bill-label">Old Dues${b.OldDuesNote ? ' ('+b.OldDuesNote+')' : ''}</span><span class="bill-value amber">₹${fmt(b.OldDues)}</span></div>` : ''}
+  ${b.ElectricAmount > 0 ? '<div class="bill-row"><span class="bill-label">⚡ Electricity '+(b.UnitsConsumed > 0 ? '('+b.UnitsConsumed+' units × ₹'+b.RatePerUnit+')' : '(Fixed)')+'</span><span class="bill-value">₹'+fmt(b.ElectricAmount)+'</span></div>' : ''}
+  ${b.MaintenanceAmount > 0 ? '<div class="bill-row"><span class="bill-label">🔧 Maintenance</span><span class="bill-value">₹'+fmt(b.MaintenanceAmount)+'</span></div>' : ''}
+  ${parseFloat(b.WaterAmount||0) > 0 ? '<div class="bill-row"><span class="bill-label">💧 Water '+(b.WaterType==='Usage' ? '('+parseFloat(b.WaterKLUsed||0).toFixed(0)+' Bottles × ₹'+b.WaterRatePerKL+')' : '(Fixed)')+'</span><span class="bill-value">₹'+fmt(b.WaterAmount)+'</span></div>' : ''}
+  ${b.LateFine > 0 ? '<div class="bill-row"><span class="bill-label">⚠️ Late Fine</span><span class="bill-value red">₹'+fmt(b.LateFine)+'</span></div>' : ''}
+  ${b.OldDues > 0 ? '<div class="bill-row"><span class="bill-label">Old Dues'+(b.OldDuesNote ? ' ('+b.OldDuesNote+')' : '')+'</span><span class="bill-value amber">₹'+fmt(b.OldDues)+'</span></div>' : ''}
   <div class="total-row"><span class="total-label">TOTAL DUE</span><span class="total-value">₹${fmt(b.TotalAmount)}</span></div>
   <div class="footer">Generated by RentPro &nbsp;•&nbsp; ${new Date().toLocaleDateString('en-IN')}<br>Computer generated bill — No signature required</div>
 </div>
-
-// ================================================================
-// 🔔 NOTIFICATION SYSTEM
-// ================================================================
-let _notifs = [];
-let _notifOpen = false;
-
-async function loadNotifications() {
-  const res = await api('getNotifications', {}).catch(() => null);
-  if (!res || !res.success) return;
-  _notifs = res.data || [];
-  renderNotifBadge();
-  if (_notifOpen) renderNotifList();
+<\/body><\/html>`;
 }
 
-function renderNotifBadge() {
-  const unread = isTenant()
-    ? _notifs.filter(n => n.IsRead === 'No').length
-    : 0; // Admin ke liye badge nahi (woh sender hai)
-  const badge = document.getElementById('notifBadge');
-  if (!badge) return;
-  if (unread > 0) {
-    badge.style.display = 'flex';
-    badge.textContent = unread > 9 ? '9+' : unread;
-  } else {
-    badge.style.display = 'none';
-  }
-  // Mark all read button
-  const markBtn = document.getElementById('markAllReadBtn');
-  if (markBtn) markBtn.style.display = unread > 0 ? 'block' : 'none';
-}
 
-function toggleNotifDrawer() {
-  if (_notifOpen) closeNotifDrawer();
-  else openNotifDrawer();
-}
 
-async function openNotifDrawer() {
-  _notifOpen = true;
-  document.getElementById('notifDrawer').classList.add('open');
-  document.getElementById('notifOverlay').classList.add('open');
-  // Admin: send form dikhao
-  const sendForm = document.getElementById('notifSendForm');
-  if (sendForm) sendForm.style.display = isAdmin() ? 'block' : 'none';
-  // Load fresh
-  await loadNotifications();
-  renderNotifList();
-}
 
-function closeNotifDrawer() {
-  _notifOpen = false;
-  document.getElementById('notifDrawer').classList.remove('open');
-  document.getElementById('notifOverlay').classList.remove('open');
-}
-
-function renderNotifList() {
-  const el = document.getElementById('notifList');
-  if (!_notifs.length) {
-    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2)">
-      <div style="font-size:48px;margin-bottom:12px">📭</div>
-      <div style="font-weight:600">Koi notification nahi</div>
-    </div>`;
-    return;
-  }
-
-  el.innerHTML = _notifs.map(n => {
-    const isUnread = n.IsRead === 'No';
-    const forLabel = {
-      All:'👥 All Tenants', Active:'✅ Active', Due:'💰 Due Tenants',
-      Room:'🏠 Room '+n.ForValue, Tenant:'👤 '+n.ForValue
-    }[n.ForType] || n.ForType;
-
-    const adminExtra = isAdmin() ? `
-      <div class="notif-seen-info">👁️ Seen by ${n.SeenCount||0} tenant${n.SeenCount==1?'':'s'}
-        ${n.SeenBy ? ' ('+n.SeenBy+')' : ''}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-        <span style="font-size:11px;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:10px;font-weight:600">${forLabel}</span>
-        <button onclick="deleteNotif('${n.NotifID}')"
-          style="background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer;font-weight:600">🗑️ Delete</button>
-      </div>` : '';
-
-    return `<div class="notif-item ${isUnread?'unread':'read'}" onclick="readNotif('${n.NotifID}',this)">
-      <div class="notif-item-title">
-        ${isUnread ? '<span class="notif-unread-dot"></span>' : ''}
-        ${n.Title}
-      </div>
-      <div class="notif-item-msg">${n.Message}</div>
-      <div class="notif-item-meta">
-        <span>👤 ${n.CreatedBy}</span>
-        <span>🕐 ${n.CreatedAt ? n.CreatedAt.substring(0,16) : ''}</span>
-      </div>
-      ${adminExtra}
-    </div>`;
-  }).join('');
-}
-
-async function readNotif(notifId, el) {
-  if (!isTenant()) return;
-  // Mark as read locally
-  const n = _notifs.find(n => n.NotifID === notifId);
-  if (n && n.IsRead === 'No') {
-    n.IsRead = 'Yes';
-    el.classList.remove('unread');
-    el.classList.add('read');
-    el.querySelector('.notif-unread-dot')?.remove();
-    renderNotifBadge();
-    // API call background mein
-    api('markNotifRead', { NotifID: notifId }).catch(() => null);
-  }
-}
-
-async function markAllRead() {
-  if (!isTenant()) return;
-  _notifs.forEach(n => n.IsRead = 'Yes');
-  renderNotifBadge();
-  renderNotifList();
-  await api('markAllNotifsRead', {}).catch(() => null);
-}
-
-async function deleteNotif(notifId) {
-  if (!isAdmin()) return;
-  if (!confirm('Yeh notification delete karo?')) return;
-  const res = await api('deleteNotification', { NotifID: notifId });
-  if (res.success) {
-    _notifs = _notifs.filter(n => n.NotifID !== notifId);
-    renderNotifList();
-    toast('Notification deleted', 'success');
-  }
-}
-
-// Admin: ForType change pe value dropdown
-function onNotifTypeChange() {
-  const type = document.getElementById('ntf_for_type').value;
-  const valSel = document.getElementById('ntf_for_value');
-  valSel.style.display = (type === 'Room' || type === 'Tenant') ? 'block' : 'none';
-  if (type === 'Room') {
-    const rooms = [...new Set(allTenants.filter(t=>t.Status==='Active').map(t=>t.RoomNo))].sort((a,b)=>parseInt(a)-parseInt(b));
-    valSel.innerHTML = rooms.map(r => `<option value="${r}">Room ${r}</option>`).join('');
-  } else if (type === 'Tenant') {
-    valSel.innerHTML = allTenants.filter(t=>t.Status==='Active')
-      .sort((a,b)=>parseInt(a.RoomNo)-parseInt(b.RoomNo))
-      .map(t => `<option value="${t.TenantID}">${t.Name} (Room ${t.RoomNo})</option>`).join('');
-  }
-}
-
-async function sendNotification() {
-  const title = document.getElementById('ntf_title').value.trim();
-  const msg   = document.getElementById('ntf_msg').value.trim();
-  const type  = document.getElementById('ntf_for_type').value;
-  const valSel = document.getElementById('ntf_for_value');
-  const val   = (type === 'Room' || type === 'Tenant') ? valSel.value : '';
-  if (!title || !msg) { toast('Title aur Message dono bharo', 'error'); return; }
-  const res = await api('addNotification', { Title:title, Message:msg, ForType:type, ForValue:val });
-  if (res.success) {
-    toast('✅ Notification send ho gayi!', 'success');
-    document.getElementById('ntf_title').value = '';
-    document.getElementById('ntf_msg').value = '';
-    await loadNotifications();
-    renderNotifList();
-  } else toast(res.error || 'Error', 'error');
-}
-
-// Auto load on initApp
-const _origInitApp = typeof initApp === 'function' ? initApp : null;
-<script>
-// Notification auto-load after login
-document.addEventListener('DOMContentLoaded', () => {
-  // Load notifications every 2 min in background
-  setInterval(() => {
-    if (STATE.token) loadNotifications();
-  }, 2 * 60 * 1000);
-});
-</script>
-</body></html>`;
-}
-
-async function openGenerateBill() {
-  const res = await api('getTenants', { Status: 'Active' });
-  const tenants = (res.data || []).filter(t => t.Status === 'Active');
-  const select = document.getElementById('gb_tenant');
-  select.innerHTML = '<option value="">Select Tenant</option>' + tenants.map(t =>
-    `<option value="${t.TenantID}"
-      data-metered="${t.IsMetered}"
-      data-reading="${t.LastMeterReading||0}"
-      data-wtype="${t.WaterType||'None'}"
-      
-      data-wrate="${t.WaterRatePerKL||0}"
-    >${t.Name} (Room ${t.RoomNo})</option>`
-  ).join('');
-  const now = new Date();
-  document.getElementById('gb_month').value = now.getMonth() + 1;
-  document.getElementById('gb_year').value = now.getFullYear();
-  showModal('generateBillModal');
-}
-
-function onBillTenantChange() {
-  const sel = document.getElementById('gb_tenant');
-  const opt = sel.selectedOptions[0];
-  if (!opt || !opt.value) return;
-
-  // Electricity
-  const isMetered = opt.dataset.metered === 'Yes';
-  document.getElementById('gb_reading_group').style.display = isMetered ? 'block' : 'none';
-  if (isMetered) document.getElementById('gb_prev_reading').textContent = `Previous reading: ${opt.dataset.reading||0}`;
-
-  // Water
-  const wType = opt.dataset.wtype || 'None';
-  const wGrp  = document.getElementById('gb_water_group');
-  if (wGrp) {
-    wGrp.style.display = wType === 'Usage' ? 'block' : 'none';
-    if (wType === 'Usage') {
-      const rateInfo = document.getElementById('gb_water_rate_info');
-      if (rateInfo) rateInfo.textContent = `Rate: ₹${opt.dataset.wrate||0} per Bottle/Unit`;
-    }
-  }
-}
-
-async function saveBill() {
-  const tenantId = document.getElementById('gb_tenant').value;
-  const month = document.getElementById('gb_month').value;
-  const year = document.getElementById('gb_year').value;
-  if (!tenantId) { toast('Select a tenant', 'error'); return; }
-  const data = {
-    TenantID: tenantId, Month: month, Year: year,
-    CurrentReading: document.getElementById('gb_reading').value,
-    WaterUnits: document.getElementById('gb_water_units')?.value || 0,
-    LateFine: document.getElementById('gb_latefine').value
-  };
-  const res = await api('generateBill', data);
-  if (res.success) {
-    toast(`Bill generated! Total: ₹${fmt(res.bill?.total)}`, 'success');
-    hideModal('generateBillModal');
-    loadBills();
-  } else toast(res.error, 'error');
-}
-
-// FIX 2: Paid button → Payment page pe bhejo with bill pre-selected
-async function markBillPaid(billId, tenantName) {
-  // Seedha payment page pe le jao, bill already select karo
-  hideModal('billPreviewModal');
-  showPage('payments');
-  // Payment modal open karo with this bill pre-selected
-  await loadUnpaidBills(billId);
-  showModal('addPaymentModal');
-  toast(`${tenantName} ka bill select ho gaya`, 'info');
-}
-
-// ===================== PAYMENTS =====================
-let allPayments = [];
-
-async function loadPayments() {
-  const el = document.getElementById('paymentsList');
-  if (!el.innerHTML || el.innerHTML.includes('emptyState')) el.innerHTML = skeletonTable(5);
-
-  const q = isTenant() ? { TenantID: STATE.user.id } : {};
-  await fetchWithCache('getPayments', 'payments_all', q, (data, isFresh) => {
-    allPayments = sortPaymentsLatestFirst(data);
-    STATE._allPayments = allPayments;
-    renderPayments(allPayments);
-  });
-}
-
-function renderPayments(payments) {
-  const el = document.getElementById('paymentsList');
-  if (!payments.length) { el.innerHTML = emptyState('💰', 'No payments recorded', 'Record payments against bills'); return; }
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Pay ID</th><th>Tenant</th><th>Bill ID</th><th>Amount</th><th>Mode</th><th>Date</th><th>Balance</th><th>Note</th></tr></thead>
-        <tbody>
-          ${payments.map(p => `<tr>
-            <td class="text-sm text-muted">${p.PaymentID}</td>
-            <td><strong>${p.TenantName}</strong></td>
-            <td class="text-sm">${p.BillID}</td>
-            <td><strong class="text-success">₹${fmt(p.AmountPaid)}</strong></td>
-            <td><span class="badge badge-info">${p.PaymentMode}</span></td>
-            <td>${p.PaymentDate}</td>
-            <td>${p.Balance > 0 ? `<span class="text-danger">₹${fmt(p.Balance)}</span>` : '<span class="text-success">✓ Cleared</span>'}</td>
-            <td class="text-muted text-sm">${p.Note || '—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function filterPayments() {
-  const search = document.getElementById('paymentSearch').value.toLowerCase().trim();
-  const mode = document.getElementById('paymentModeFilter').value;
-  const filtered = allPayments.filter(p =>
-    (!search || 
-      (p.TenantName||'').toLowerCase().includes(search) ||
-      String(p.BillID||'').toLowerCase().includes(search) ||
-      String(p.PaymentID||'').toLowerCase().includes(search) ||
-      String(p.RoomNo||'').toLowerCase().includes(search) ||
-      String(p.AmountPaid||'').includes(search)
-    ) &&
-    (!mode || p.PaymentMode === mode)
-  );
-  renderPayments(filtered);
-}
-
-async function savePayment() {
-  const billId = document.getElementById('pay_bill').value;
-  const amount = document.getElementById('pay_amount').value;
-  if (!billId || !amount) { toast('Select bill and enter amount', 'error'); return; }
-  const res = await api('addPayment', {
-    BillID: billId,
-    AmountPaid: amount,
-    PaymentDate: document.getElementById('pay_date').value || new Date().toISOString().split('T')[0],
-    PaymentMode: document.getElementById('pay_mode').value,
-    Note: document.getElementById('pay_note').value
-  });
-  if (res.success) {
-    cacheClear('payments_all');
-    cacheClear('bills_all');
-    cacheClear('tenants');
-    const balMsg = res.balance > 0 ? ` Balance: ₹${fmt(res.balance)}` : ' Fully Paid!';
-    toast('Payment recorded!' + balMsg, 'success');
-    hideModal('addPaymentModal');
-    loadPayments();
-    loadBills();
-  } else toast(res.error, 'error');
-}
-
-// Bill select hone par remaining amount dikhao
-function onBillSelectChange() {
-  const sel = document.getElementById('pay_bill');
-  const opt = sel.selectedOptions[0];
-  const infoEl = document.getElementById('pay_remaining_info');
-  const textEl = document.getElementById('pay_remaining_text');
-  const amtEl = document.getElementById('pay_amount');
-  if (sel.value && opt && opt.dataset.amount) {
-    const remaining = parseFloat(opt.dataset.amount) || 0;
-    infoEl.style.display = 'block';
-    textEl.innerHTML = `💰 Is bill ka baaki amount: <strong>₹${fmt(remaining)}</strong>`;
-    amtEl.value = remaining; // Auto-fill remaining amount
-    amtEl.max = remaining;
-  } else {
-    infoEl.style.display = 'none';
-    amtEl.value = '';
-  }
-}
-
-// Load unpaid bills for payment modal - optional pre-select
-let _allUnpaidBills = [];
-async function loadUnpaidBills(preSelectBillId = null) {
-  const res = await api('getBills', { Status: 'Unpaid' });
-  const partial = await api('getBills', { Status: 'Partial' });
-  _allUnpaidBills = [...(res.data || []), ...(partial.data || [])];
-  
-  // Sort: purane bill pehle (month/year ascending)
-  _allUnpaidBills.sort((a, b) => {
-    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
-    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
-    return aVal - bVal;
-  });
-
-  // Tenant filter populate karo
-  const tenantSel = document.getElementById('pay_tenant_filter');
-  const uniqueTenants = [...new Map(_allUnpaidBills.map(b => [b.TenantID, {id: b.TenantID, name: b.TenantName, room: b.RoomNo}])).values()];
-  tenantSel.innerHTML = '<option value="">-- Pehle Tenant Chuno --</option>' + 
-    uniqueTenants.map(t => `<option value="${t.id}">${t.name} (Room ${t.room})</option>`).join('');
-
-  // Bill dropdown khali karo
-  const sel = document.getElementById('pay_bill');
-  sel.innerHTML = '<option value="">-- Pehle Tenant Chuno --</option>';
-
-  // Pre-select karo if billId diya
-  if (preSelectBillId) {
-    const bill = _allUnpaidBills.find(b => b.BillID === preSelectBillId);
-    if (bill) {
-      tenantSel.value = bill.TenantID;
-      filterPaymentBills();
-      sel.value = preSelectBillId;
-      onBillSelectChange();
-    }
-  }
-  document.getElementById('pay_date').value = new Date().toISOString().split('T')[0];
-}
-
-function filterPaymentBills() {
-  const tenantId = document.getElementById('pay_tenant_filter').value;
-  const sel = document.getElementById('pay_bill');
-  const filtered = tenantId ? _allUnpaidBills.filter(b => b.TenantID === tenantId) : [];
-  sel.innerHTML = tenantId 
-    ? '<option value="">-- Bill Select Karo --</option>' + filtered.map(b => {
-        const paid = (STATE._allPayments || []).filter(p => p.BillID === b.BillID).reduce((s,p)=>s+(parseFloat(p.AmountPaid)||0),0);
-        const remaining = parseFloat(b.TotalAmount) - paid;
-        return `<option value="${b.BillID}" data-amount="${remaining}">${b.Month}/${b.Year} | Baaki: ₹${fmt(remaining)}</option>`;
-      }).join('')
-    : '<option value="">-- Pehle Tenant Chuno --</option>';
-  document.getElementById('pay_remaining_info').style.display = 'none';
-  document.getElementById('pay_amount').value = '';
-}
-
-// ===================== EXPENSES =====================
-let allExpenses = [];
-
-async function loadExpenses() {
-  const cached = cacheGet('expenses');
-  if (cached) { allExpenses = cached; renderExpenses(allExpenses); }
-  const res = await api('getExpenses');
-  if (res.success && res.data) {
-    allExpenses = res.data;
-    cacheSet('expenses', allExpenses);
-    renderExpenses(allExpenses);
-  }
-}
-
-function renderExpenses(expenses) {
-  const el = document.getElementById('expensesList');
-  if (!expenses.length) { el.innerHTML = emptyState('💸', 'No expenses yet', 'Track your property expenses'); return; }
-  const total = expenses.reduce((s, e) => s + (parseFloat(e.Amount) || 0), 0);
-  el.innerHTML = `
-    <div style="margin-bottom:16px">
-      <div class="stat-card amber" style="display:inline-block;padding:14px 20px">
-        <div class="stat-icon" style="display:inline-flex;margin-bottom:0;margin-right:10px">💸</div>
-        <span style="font-family:var(--font-display);font-size:20px;font-weight:800">₹${fmt(total)}</span>
-        <span style="color:var(--text2);font-size:13px;margin-left:8px">Total Expenses</span>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Category</th><th>Description</th><th>Amount</th><th>Date</th><th>Added By</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${expenses.map(e => `<tr>
-            <td><span class="badge badge-warning">${e.Category}</span></td>
-            <td>${e.Description}</td>
-            <td><strong>₹${fmt(e.Amount)}</strong></td>
-            <td>${e.Date}</td>
-            <td class="text-muted text-sm">${e.AddedBy}</td>
-            <td class="actions-cell">${isAdmin() ? `<button class="act-btn del" onclick="deleteExpense('${e.ExpenseID}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>` : '—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-function filterExpenses() {
-  const search = document.getElementById('expenseSearch').value.toLowerCase();
-  const cat = document.getElementById('expenseCategoryFilter').value;
-  const filtered = allExpenses.filter(e =>
-    (!search || e.Description.toLowerCase().includes(search) || e.Category.toLowerCase().includes(search)) &&
-    (!cat || e.Category === cat)
-  );
-  renderExpenses(filtered);
-}
-
-async function saveExpense() {
-  const data = {
-    Category: document.getElementById('exp_cat').value,
-    Description: document.getElementById('exp_desc').value.trim(),
-    Amount: document.getElementById('exp_amount').value,
-    Date: document.getElementById('exp_date').value || new Date().toISOString().split('T')[0]
-  };
-  if (!data.Description || !data.Amount) { toast('Fill all fields', 'error'); return; }
-  const res = await api('addExpense', data);
-  if (res.success) { toast('Expense recorded!', 'success'); hideModal('addExpenseModal'); loadExpenses(); }
-  else toast(res.error, 'error');
-}
-
-async function deleteExpense(id) {
-  const res = await api('deleteExpense', { ExpenseID: id });
-  if (res.success) { toast('Deleted!', 'success'); loadExpenses(); }
-  else toast(res.error, 'error');
-}
-
-// ===================== INVENTORY =====================
-async function loadInventory() {
-  const res = await api('getInventory');
-  const inv = res.data || [];
-  const el = document.getElementById('inventoryList');
-  if (!inv.length) { el.innerHTML = emptyState('📦', 'No inventory items', 'Add items for each room'); return; }
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Item</th><th>Room</th><th>Tenant</th><th>Qty</th><th>Condition</th><th>Remarks</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${inv.map(i => `<tr>
-            <td><strong>${i.ItemName}</strong></td>
-            <td>${i.RoomNo}</td>
-            <td>${i.TenantID}</td>
-            <td>${i.Quantity}</td>
-            <td><span class="badge ${i.Condition === 'Good' ? 'badge-success' : i.Condition === 'Fair' ? 'badge-warning' : 'badge-danger'}">${i.Condition}</span></td>
-            <td class="text-muted text-sm">${i.Remarks || '—'}</td>
-            <td><div class="actions-cell">
-              ${isAdmin() ? `<button class="act-btn edit" onclick="openEditInventory('${i.InventoryID}')" data-tip="Edit"><span class="act-icon">✏️</span></button>` : ''}
-              ${isAdmin() ? `<button class="act-btn del" onclick="deleteInventoryItem('${i.InventoryID}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>` : '—'}
-            </div></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function saveInventory() {
-  const data = {
-    TenantID: document.getElementById('inv_tenant').value,
-    RoomNo: (allTenants.find(t => t.TenantID === document.getElementById('inv_tenant').value) || {}).RoomNo || '',
-    ItemName: document.getElementById('inv_item').value.trim(),
-    Quantity: document.getElementById('inv_qty').value,
-    Condition: document.getElementById('inv_cond').value,
-    Remarks: document.getElementById('inv_remarks').value
-  };
-  if (!data.TenantID || !data.ItemName) { toast('Select tenant and enter item name', 'error'); return; }
-  const res = await api('addInventory', data);
-  if (res.success) { toast('Item added!', 'success'); hideModal('addInventoryModal'); loadInventory(); }
-  else toast(res.error, 'error');
-}
-
-async function deleteInventoryItem(id) {
-  const res = await api('deleteInventory', { InventoryID: id });
-  if (res.success) { toast('Deleted!', 'success'); loadInventory(); }
-  else toast(res.error, 'error');
-}
-
-let _editInvId = null;
-function openEditInventory(id) {
-  const db = dbLoad();
-  const item = db.inventory.find(i => i.InventoryID === id);
-  if (!item) return;
-  _editInvId = id;
-  document.getElementById('ei_id').value = id;
-  document.getElementById('ei_item').value = item.ItemName;
-  document.getElementById('ei_qty').value = item.Quantity;
-  document.getElementById('ei_cond').value = item.Condition || 'Good';
-  document.getElementById('ei_remarks').value = item.Remarks || '';
-  showModal('editInventoryModal');
-}
-
-async function saveEditInventory() {
-  const id = document.getElementById('ei_id').value;
-  const data = {
-    InventoryID: id,
-    ItemName: document.getElementById('ei_item').value.trim(),
-    Quantity: document.getElementById('ei_qty').value,
-    Condition: document.getElementById('ei_cond').value,
-    Remarks: document.getElementById('ei_remarks').value
-  };
-  if (!data.ItemName) { toast('Item naam required hai', 'error'); return; }
-  const res = await api('updateInventory', data);
-  if (res.success) { toast('Inventory updated!', 'success'); hideModal('editInventoryModal'); loadInventory(); }
-  else toast(res.error || 'Update nahi hua', 'error');
-}
-
-// ===================== DOCUMENTS =====================
-async function loadDocuments() {
-  const res = await api('getDocuments');
-  const docs = res.data || [];
-  const el = document.getElementById('documentsList');
-  if (!docs.length) { el.innerHTML = emptyState('📎', 'No documents', 'Upload tenant documents'); return; }
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
-      ${docs.map(d => {
-        const ext = (d.FileName||'').split('.').pop().toLowerCase();
-        const icon = ext==='pdf' ? '📕' : ['jpg','jpeg','png'].includes(ext) ? '🖼️' : '📄';
-        const typeColor = d.DocType==='Aadhaar Card'?'#2563eb':d.DocType==='Rent Agreement'?'#059669':d.DocType==='Photo'?'#7c3aed':'#d97706';
-        return `<div class="card" style="padding:0;overflow:hidden">
-          <div style="background:${typeColor};padding:10px 14px;display:flex;align-items:center;gap:8px">
-            <span style="font-size:22px">${icon}</span>
-            <div>
-              <div style="font-weight:700;color:white;font-size:13px">${d.DocType}</div>
-              <div style="font-size:11px;color:rgba(255,255,255,0.8)">${d.TenantName}</div>
-            </div>
-          </div>
-          <div style="padding:12px 14px">
-            <div style="font-size:12px;color:var(--text2);margin-bottom:10px;word-break:break-all">📎 ${d.FileName}</div>
-            <div style="font-size:11px;color:var(--text2);margin-bottom:10px">🕐 ${d.UploadedAt ? d.UploadedAt.split(' ')[0] : ''} • ${d.UploadedBy||''}</div>
-            <div style="display:flex;gap:8px">
-              ${d.DriveURL ? `<a href="${d.DriveURL}" target="_blank" class="btn btn-sm btn-outline" style="flex:1;text-align:center;font-size:12px">👁️ View</a>` : ''}
-              <button onclick="deleteDocument('${d.DocID}','${d.FileID||''}')" class="btn btn-sm" style="background:rgba(220,38,38,0.1);color:#dc2626;border:none;font-size:12px">🗑️</button>
-            </div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-  `;
-}
-
-let _docFile = null;
-
-function onDocFileSelect(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) { toast('File 5MB se badi hai!', 'error'); return; }
-  _docFile = file;
-  const preview = document.getElementById('doc_file_preview');
-  document.getElementById('doc_file_name').textContent = '📄 ' + file.name;
-  document.getElementById('doc_file_size').textContent = (file.size/1024).toFixed(1) + ' KB';
-  preview.style.display = 'flex';
-  document.getElementById('doc_dropzone').style.display = 'none';
-}
-
-function handleDocDrop(event) {
-  event.preventDefault();
-  document.getElementById('doc_dropzone').style.borderColor = 'var(--border)';
-  const file = event.dataTransfer.files[0];
-  if (file) { document.getElementById('doc_file').files; _docFile = file; onDocFileSelect({ files: [file] }); }
-}
-
-function clearDocFile() {
-  _docFile = null;
-  document.getElementById('doc_file').value = '';
-  document.getElementById('doc_file_preview').style.display = 'none';
-  document.getElementById('doc_dropzone').style.display = 'block';
-}
-
-async function saveDocument() {
-  const tenantId = document.getElementById('doc_tenant').value;
-  const docType  = document.getElementById('doc_type').value;
-  if (!tenantId) { toast('Tenant select karo', 'error'); return; }
-  if (!_docFile) { toast('File select karo', 'error'); return; }
-
-  const btn = document.getElementById('doc_upload_btn');
-  btn.disabled = true; btn.textContent = '⏳ Uploading...';
-  document.getElementById('doc_progress').style.display = 'block';
-  document.getElementById('doc_progress_bar').style.width = '30%';
-  document.getElementById('doc_progress_text').textContent = 'File prepare ho rahi hai...';
-
-  // File to Base64
-  const base64 = await new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-    reader.readAsDataURL(_docFile);
-  });
-
-  document.getElementById('doc_progress_bar').style.width = '60%';
-  document.getElementById('doc_progress_text').textContent = 'Google Drive pe upload ho rahi hai...';
-
-  const res = await api('addDocument', {
-    TenantID: tenantId,
-    DocType: docType,
-    FileName: _docFile.name,
-    MimeType: _docFile.type,
-    FileData: base64
-  });
-
-  document.getElementById('doc_progress_bar').style.width = '100%';
-  btn.disabled = false; btn.textContent = '📤 Drive pe Upload';
-  document.getElementById('doc_progress').style.display = 'none';
-
-  if (res.success) {
-    toast('Document Drive pe save ho gaya! ✅', 'success');
-    clearDocFile();
-    hideModal('addDocumentModal');
-    loadDocuments();
-  } else {
-    toast(res.error || 'Upload fail ho gaya', 'error');
-  }
-}
-
-async function deleteDocument(docId, fileId) {
-  confirm_action('Document Delete Karo?', 'Drive se bhi delete ho jaayega.', async () => {
-    const res = await api('deleteDocument', { DocID: docId, FileID: fileId });
-    if (res.success) { toast('Document delete ho gaya!', 'success'); loadDocuments(); }
-    else toast(res.error, 'error');
-  });
-}
-
-// ===================== AGREEMENT MAKER =====================
-function sendDuesWhatsApp(mobile, name, roomNo, dues) {
-  // Get pending bill details for this tenant
-  const tenantBills = (allBills || []).filter(b =>
-    b.RoomNo == roomNo && b.Status !== 'Paid'
-  ).sort((a,b) => {
-    const aVal = parseInt(a.Year)*100 + parseInt(a.Month);
-    const bVal = parseInt(b.Year)*100 + parseInt(b.Month);
-    return aVal - bVal;
-  });
-
-  let billDetails = '';
-  if (tenantBills.length > 0) {
-    billDetails = tenantBills.map(b => {
-      const paid = (STATE._allPayments||[]).filter(p=>p.BillID===b.BillID).reduce((s,p)=>s+(parseFloat(p.AmountPaid)||0),0);
-      const bal = Math.max(0, parseFloat(b.TotalAmount) - paid);
-      return `  📋 ${b.Month}/${b.Year}: ₹${bal.toLocaleString('en-IN')} (Due: ${b.DueDate||'—'})`;
-    }).join('\n');
-  }
-
-  const today = new Date().toLocaleDateString('en-IN');
-  const msg = `🏠 *RentPro - Rent Reminder*
-
-Namaskar *${name}* ji! 🙏
-
-Aapke Room *${roomNo}* ka rent baaki hai:
-
-${billDetails}
-
-💰 *Kul Baaki: ₹${Math.round(dues).toLocaleString('en-IN')}*
-
-Kripya *jald se jald* payment karein aur late fine se bachein.
-
-_Reminder Date: ${today}_
-_— RentPro Property Manager_`;
-
-  window.open('https://wa.me/91' + String(mobile) + '?text=' + encodeURIComponent(msg), '_blank');
-}
 
 // ===================== AGREEMENT MAKER =====================
 async function loadAgreementPage() {
-  // Tenant dropdown populate karo
   const sel = document.getElementById('agr_tenant_select');
-  if (!sel) return;
-  if (!allTenants.length) {
+  if (sel && allTenants.length === 0) {
     const res = await api('getTenants');
     allTenants = res.data || [];
   }
-  sel.innerHTML = '<option value="">-- Tenant select karo (auto fill hoga) --</option>' +
-    allTenants.filter(t => t.Status === 'Active').map(t =>
-      `<option value="${t.TenantID}">${t.Name} — Room ${t.RoomNo}</option>`
-    ).join('');
-
-  // Today's date set karo
+  if (sel) {
+    sel.innerHTML = '<option value="">-- Tenant select karo (auto fill hoga) --</option>' +
+      allTenants.filter(function(t){ return t.Status === 'Active'; }).map(function(t){
+        return '<option value="'+t.TenantID+'">'+t.Name+' — Room '+t.RoomNo+'</option>';
+      }).join('');
+  }
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('agr_date').value = today;
   document.getElementById('agr_start').value = today;
-
-  // Admin ka naam landlord mein pre-fill
-  if (STATE.user) {
-    document.getElementById('agr_ll_name').value = STATE.user.name || '';
-    document.getElementById('agr_ll_mobile').value = STATE.user.mobile || '';
+  if (STATE.user && STATE.user.name) {
+    document.getElementById('agr_ll_name').value = STATE.user.name;
+    document.getElementById('agr_ll_mobile').value = String(STATE.user.mobile || '');
   }
 }
 
 function autoFillAgreement() {
   const tenantId = document.getElementById('agr_tenant_select').value;
   if (!tenantId) return;
-  const t = allTenants.find(x => x.TenantID === tenantId);
+  const t = allTenants.find(function(x){ return x.TenantID === tenantId; });
   if (!t) return;
-
-  // Tenant details
-  document.getElementById('agr_tn_name').value = t.Name || '';
-  document.getElementById('agr_tn_mobile').value = t.Mobile || '';
-  document.getElementById('agr_tn_aadhaar').value = t.AadhaarNo || '';
-  document.getElementById('agr_tn_address').value = t.PermanentAddress || '';
+  document.getElementById('agr_tn_name').value       = t.Name || '';
+  document.getElementById('agr_tn_mobile').value     = String(t.Mobile || '');
+  document.getElementById('agr_tn_aadhaar').value    = t.AadhaarNo || '';
+  document.getElementById('agr_tn_address').value    = t.Address || '';
   document.getElementById('agr_tn_occupation').value = t.Occupation || '';
-
-  // Room + financial
-  document.getElementById('agr_room_no').value = t.RoomNo || '';
-  document.getElementById('agr_rent').value = t.Rent || '';
-  document.getElementById('agr_deposit').value = t.SecurityDeposit || '';
-  document.getElementById('agr_maint').value = t.Maintenance || '';
-  document.getElementById('agr_late_fine').value = t.LateFineAmount || '';
-
-  // Electricity
+  document.getElementById('agr_room_no').value       = t.RoomNo || '';
+  document.getElementById('agr_rent').value          = t.RentAmount || '';
+  document.getElementById('agr_deposit').value       = t.SecurityDeposit || '';
+  document.getElementById('agr_late_fine').value     = t.LateFineAmount || '';
+  document.getElementById('agr_maint').value         = t.MaintenanceAmount || '';
   if (t.IsMetered === 'Yes') {
     document.getElementById('agr_elec_type').value = 'meter';
-    document.getElementById('agr_elec_amt_grp').style.display = 'none';
-  } else {
+  } else if (parseFloat(t.FixedElecAmount) > 0) {
     document.getElementById('agr_elec_type').value = 'fixed';
-    document.getElementById('agr_elec_amt').value = t.ElectricityFixed || '';
+    document.getElementById('agr_elec_amt').value  = t.FixedElecAmount || '';
   }
-
-  // Start date from joining
-  if (t.JoiningDate) {
-    document.getElementById('agr_start').value = t.JoiningDate.split('T')[0];
-  }
-
-  toast(`✅ ${t.Name} ka data fill ho gaya!`, 'success');
+  toggleElecAgreement();
+  if (t.JoiningDate) document.getElementById('agr_start').value = t.JoiningDate.split('T')[0];
+  toast('Tenant details auto-fill ho gayi! ✅', 'success');
 }
 
 function toggleElecAgreement() {
   const type = document.getElementById('agr_elec_type').value;
-  document.getElementById('agr_elec_amt_grp').style.display = type === 'meter' || type === 'included' ? 'none' : 'block';
+  const grp  = document.getElementById('agr_elec_amt_grp');
+  if (grp) grp.style.display = type === 'meter' ? 'none' : 'block';
 }
 
 function clearAgreement() {
-  document.querySelectorAll('#agreementForm input, #agreementForm textarea, #agreementForm select').forEach(el => {
-    if (el.tagName === 'SELECT') el.selectedIndex = 0;
-    else el.value = '';
+  ['agr_ll_name','agr_ll_father','agr_ll_mobile','agr_ll_aadhaar','agr_ll_address',
+   'agr_tn_name','agr_tn_father','agr_tn_mobile','agr_tn_aadhaar','agr_tn_address','agr_tn_occupation',
+   'agr_prop_address','agr_room_no','agr_floor','agr_rent','agr_deposit','agr_due_day',
+   'agr_late_fine','agr_elec_amt','agr_maint'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('agr_duration').value = '11';
-  document.getElementById('agr_lockin').value = '6';
-  document.getElementById('agr_notice').value = '30';
-  document.getElementById('agr_increment').value = '10';
   document.getElementById('agr_tenant_select').value = '';
   document.getElementById('agreementPreview').style.display = 'none';
-  toast('Form reset ho gaya', 'info');
+  toast('Form reset ho gaya', 'success');
+}
+
+function getAgrVal(id, fallback) { var el = document.getElementById(id); return el ? (el.value || fallback) : fallback; }
+function fmtDate(dateStr) {
+  if (!dateStr) return '___________';
+  return new Date(dateStr).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'});
 }
 
 function getAgreementData() {
-  const startDate = document.getElementById('agr_start').value;
-  const duration  = parseInt(document.getElementById('agr_duration').value) || 11;
-  let endDate = '';
-  if (startDate) {
-    const d = new Date(startDate);
-    d.setMonth(d.getMonth() + duration);
-    endDate = d.toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' });
-  }
-  const elecType = document.getElementById('agr_elec_type').value;
-  const elecAmt  = document.getElementById('agr_elec_amt').value;
-  const elecText = elecType === 'meter' ? 'As per meter reading' : elecType === 'included' ? 'Included in rent' : `Fixed ₹${elecAmt}/month`;
-
+  var startDate = getAgrVal('agr_start','');
+  var duration  = parseInt(getAgrVal('agr_duration','11')) || 11;
+  var endDate = '';
+  if (startDate) { var dd = new Date(startDate); dd.setMonth(dd.getMonth()+duration); endDate = dd.toISOString().split('T')[0]; }
+  var elecType = getAgrVal('agr_elec_type','meter');
   return {
-    agrDate:    document.getElementById('agr_date').value ? new Date(document.getElementById('agr_date').value).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '___________',
-    llName:     document.getElementById('agr_ll_name').value || '_______________',
-    llFather:   document.getElementById('agr_ll_father').value || '_______________',
-    llMobile:   document.getElementById('agr_ll_mobile').value || '_______________',
-    llAadhaar:  document.getElementById('agr_ll_aadhaar').value || '______-______-______',
-    llAddress:  document.getElementById('agr_ll_address').value || '_______________',
-    tnName:     document.getElementById('agr_tn_name').value || '_______________',
-    tnFather:   document.getElementById('agr_tn_father').value || '_______________',
-    tnMobile:   document.getElementById('agr_tn_mobile').value || '_______________',
-    tnAadhaar:  document.getElementById('agr_tn_aadhaar').value || '______-______-______',
-    tnAddress:  document.getElementById('agr_tn_address').value || '_______________',
-    tnOccup:    document.getElementById('agr_tn_occupation').value || '_______________',
-    propAddress:document.getElementById('agr_prop_address').value || '_______________',
-    roomNo:     document.getElementById('agr_room_no').value || '___',
-    floor:      document.getElementById('agr_floor').value || '___',
-    roomType:   document.getElementById('agr_room_type').value,
-    furnished:  document.getElementById('agr_furnished').value,
-    rent:       document.getElementById('agr_rent').value || '0',
-    deposit:    document.getElementById('agr_deposit').value || '0',
-    dueDay:     document.getElementById('agr_due_day').value || '5',
-    lateFine:   document.getElementById('agr_late_fine').value || '0',
-    elecText,
-    maint:      document.getElementById('agr_maint').value || '0',
-    water:      document.getElementById('agr_water').value === 'included' ? 'Included in rent' : 'Separate',
-    startDate:  startDate ? new Date(startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'}) : '___________',
-    endDate,
-    duration,
-    lockin:     document.getElementById('agr_lockin').value || '6',
-    notice:     document.getElementById('agr_notice').value || '30',
-    increment:  document.getElementById('agr_increment').value || '10',
+    agrDate:  fmtDate(getAgrVal('agr_date','')),
+    llName:   getAgrVal('agr_ll_name','___________________________'),
+    llFather: getAgrVal('agr_ll_father','___________________________'),
+    llMobile: getAgrVal('agr_ll_mobile','___________'),
+    llAadhaar:getAgrVal('agr_ll_aadhaar','____-____-____'),
+    llAddress:getAgrVal('agr_ll_address','___________________________'),
+    tnName:   getAgrVal('agr_tn_name','___________________________'),
+    tnFather: getAgrVal('agr_tn_father','___________________________'),
+    tnMobile: getAgrVal('agr_tn_mobile',''),
+    tnAadhaar:getAgrVal('agr_tn_aadhaar','____-____-____'),
+    tnAddress:getAgrVal('agr_tn_address','___________________________'),
+    tnOccup:  getAgrVal('agr_tn_occupation','___________'),
+    propAddr: getAgrVal('agr_prop_address','___________________________'),
+    roomNo:   getAgrVal('agr_room_no','___'),
+    floor:    getAgrVal('agr_floor','___'),
+    roomType: getAgrVal('agr_room_type','Single Room'),
+    furnished:getAgrVal('agr_furnished','Unfurnished'),
+    rent:     '₹' + getAgrVal('agr_rent','0'),
+    deposit:  '₹' + getAgrVal('agr_deposit','0'),
+    dueDay:   getAgrVal('agr_due_day','5'),
+    lateFine: '₹' + getAgrVal('agr_late_fine','0') + '/day',
+    elec:     elecType==='meter' ? 'As per meter reading' : elecType==='fixed' ? '₹' + getAgrVal('agr_elec_amt','0') + '/month (Fixed)' : 'Included in Rent',
+    maint:    getAgrVal('agr_maint','') ? '₹' + getAgrVal('agr_maint','') + '/month' : 'Included',
+    water:    getAgrVal('agr_water','included')==='included' ? 'Included' : 'Separate',
+    startDate:fmtDate(startDate),
+    endDate:  fmtDate(endDate),
+    duration: duration + ' Months',
+    lockin:   getAgrVal('agr_lockin','6') + ' Months',
+    notice:   getAgrVal('agr_notice','30') + ' Days',
+    increment:getAgrVal('agr_increment','10') + '%',
   };
 }
 
-function buildAgreementHTML(d, forPrint = false) {
-  const numToWords = n => {
-    const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-    const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-    n = parseInt(n);
-    if (!n) return 'Zero';
-    if (n < 20) return ones[n];
-    if (n < 100) return tens[Math.floor(n/10)] + (n%10?' '+ones[n%10]:'');
-    if (n < 1000) return ones[Math.floor(n/100)]+' Hundred'+(n%100?' '+numToWords(n%100):'');
-    return numToWords(Math.floor(n/1000))+' Thousand'+(n%1000?' '+numToWords(n%1000):'');
-  };
+function buildAgreementHTML(d) {
+  function row(label,val,bg) {
+    return '<tr><td style="padding:6px 12px;background:'+bg+';font-weight:600;width:36%;border-bottom:1px solid #e5e7eb;font-size:12px">'+label+'</td>'
+      +'<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">'+val+'</td></tr>';
+  }
+  var fin = [
+    ['Monthly Rent','<strong style="color:#dc2626;font-size:14px">'+d.rent+'</strong>'],
+    ['Security Deposit',d.deposit],['Due Date','Every '+d.dueDay+' of month'],
+    ['Late Fine',d.lateFine],['Electricity',d.elec],['Maintenance',d.maint],['Water',d.water]
+  ].map(function(x){ return row(x[0],x[1],'#FEF3F2'); }).join('');
 
-  return `
-  <style>
-    .agr-doc { font-family: Arial, sans-serif; font-size: 13px; color: #1a1a1a; max-width: 820px; margin: 0 auto; background: white; padding: 40px; }
-    .agr-title { text-align:center; margin-bottom: 6px; }
-    .agr-title h1 { font-size: 26px; color: #1a56db; margin: 0; letter-spacing: 2px; }
-    .agr-title p { color: #555; font-size: 13px; margin: 4px 0 0; }
-    .agr-divider { border: none; border-top: 3px solid #1a56db; margin: 16px 0; }
-    .agr-section { margin: 20px 0; }
-    .agr-section-title { font-size: 14px; font-weight: 800; color: #1a56db; border-bottom: 2px solid #dbeafe; padding-bottom: 6px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .agr-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    .agr-table td { padding: 7px 10px; border: 1px solid #e2e8f0; font-size: 12.5px; vertical-align: top; }
-    .agr-table td:first-child { font-weight: 700; background: #f8fafc; width: 35%; color: #374151; }
-    .agr-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    .agr-clause { margin: 7px 0; padding-left: 20px; position: relative; line-height: 1.6; }
-    .agr-clause::before { content: attr(data-n)"."; position: absolute; left: 0; font-weight: 700; color: #1a56db; }
-    .agr-sig { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
-    .agr-sig-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
-    .agr-sig-box h4 { margin: 0 0 12px; font-size: 13px; color: #1a56db; border-bottom: 1px solid #dbeafe; padding-bottom: 6px; }
-    .agr-sig-line { border-bottom: 1px solid #999; margin: 28px 0 4px; }
-    .agr-footer-note { text-align: center; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px; }
-    .agr-stamp { display: inline-block; border: 3px solid #dc2626; border-radius: 50%; width: 90px; height: 90px; line-height: 84px; text-align: center; font-size: 11px; font-weight: 700; color: #dc2626; transform: rotate(-15deg); opacity: 0.7; float: right; margin: -60px 0 0; }
-    @media print { .agr-doc { padding: 20px; } }
-  </style>
-  <div class="agr-doc" id="agreementPrintArea">
-    <div class="agr-title">
-      <div style="font-size:36px;margin-bottom:4px">🏠</div>
-      <h1>RENT AGREEMENT</h1>
-      <p>किराया समझौता &nbsp;|&nbsp; Date: <strong>${d.agrDate}</strong></p>
-    </div>
-    <hr class="agr-divider">
-
-    <p style="line-height:1.7;margin:12px 0">This Rent Agreement is entered into on <strong>${d.agrDate}</strong> between the parties mentioned below, and both parties agree to abide by the terms and conditions mentioned herein.</p>
-
-    <!-- PARTIES -->
-    <div class="agr-2col">
-      <div class="agr-section">
-        <div class="agr-section-title">🏠 Landlord (मकान मालिक)</div>
-        <table class="agr-table">
-          <tr><td>Name</td><td><strong>${d.llName}</strong></td></tr>
-          <tr><td>Father's Name</td><td>${d.llFather}</td></tr>
-          <tr><td>Mobile</td><td>${d.llMobile}</td></tr>
-          <tr><td>Aadhaar</td><td>${d.llAadhaar}</td></tr>
-          <tr><td>Address</td><td>${d.llAddress}</td></tr>
-        </table>
-      </div>
-      <div class="agr-section">
-        <div class="agr-section-title">👤 Tenant (किरायेदार)</div>
-        <table class="agr-table">
-          <tr><td>Name</td><td><strong>${d.tnName}</strong></td></tr>
-          <tr><td>Father's Name</td><td>${d.tnFather}</td></tr>
-          <tr><td>Mobile</td><td>${d.tnMobile}</td></tr>
-          <tr><td>Aadhaar</td><td>${d.tnAadhaar}</td></tr>
-          <tr><td>Address</td><td>${d.tnAddress}</td></tr>
-          <tr><td>Occupation</td><td>${d.tnOccup}</td></tr>
-        </table>
-      </div>
-    </div>
-
-    <!-- PROPERTY -->
-    <div class="agr-section">
-      <div class="agr-section-title">🏢 Property Details (संपत्ति)</div>
-      <div class="agr-2col">
-        <table class="agr-table">
-          <tr><td>Address</td><td>${d.propAddress}</td></tr>
-          <tr><td>Room / Flat No.</td><td><strong>${d.roomNo}</strong></td></tr>
-          <tr><td>Floor</td><td>${d.floor}</td></tr>
-        </table>
-        <table class="agr-table">
-          <tr><td>Type</td><td>${d.roomType}</td></tr>
-          <tr><td>Furnished</td><td>${d.furnished}</td></tr>
-        </table>
-      </div>
-    </div>
-
-    <!-- FINANCIAL -->
-    <div class="agr-section">
-      <div class="agr-section-title">💰 Financial Terms (आर्थिक शर्तें)</div>
-      <div class="agr-2col">
-        <table class="agr-table">
-          <tr><td>Monthly Rent</td><td><strong>₹${fmt(d.rent)}</strong> (${numToWords(d.rent)} Rupees only)</td></tr>
-          <tr><td>Security Deposit</td><td>₹${fmt(d.deposit)} (${numToWords(d.deposit)} Rupees only)</td></tr>
-          <tr><td>Rent Due Date</td><td>Every month on <strong>${d.dueDay}th</strong></td></tr>
-          <tr><td>Late Fine</td><td>₹${d.lateFine}/day after due date</td></tr>
-        </table>
-        <table class="agr-table">
-          <tr><td>Electricity</td><td>${d.elecText}</td></tr>
-          <tr><td>Water</td><td>${d.water}</td></tr>
-          <tr><td>Maintenance</td><td>${d.maint > 0 ? '₹'+fmt(d.maint)+'/month' : 'Included'}</td></tr>
-        </table>
-      </div>
-    </div>
-
-    <!-- TENURE -->
-    <div class="agr-section">
-      <div class="agr-section-title">📅 Tenure (अवधि)</div>
-      <table class="agr-table">
-        <tr><td>Start Date</td><td><strong>${d.startDate}</strong></td><td>End Date</td><td><strong>${d.endDate}</strong></td></tr>
-        <tr><td>Duration</td><td><strong>${d.duration} Months</strong></td><td>Lock-in Period</td><td>${d.lockin} Months</td></tr>
-        <tr><td>Notice Period</td><td>${d.notice} Days</td><td>Annual Increment</td><td>${d.increment}%</td></tr>
-      </table>
-    </div>
-
-    <!-- TERMS -->
-    <div class="agr-section">
-      <div class="agr-section-title">📋 Terms & Conditions (नियम व शर्तें)</div>
-      <div class="agr-clause" data-n="1">The Tenant shall pay the monthly rent of <strong>₹${fmt(d.rent)}</strong> on or before the <strong>${d.dueDay}th</strong> of every month. Delay shall attract a late fine of ₹${d.lateFine}/day.</div>
-      <div class="agr-clause" data-n="2">The Tenant shall use the premises only for residential purposes and shall not sublet, assign, or share the premises without prior written consent of the Landlord.</div>
-      <div class="agr-clause" data-n="3">The Tenant shall keep the premises clean and in good condition. Any damage caused by negligence shall be repaired at Tenant's expense.</div>
-      <div class="agr-clause" data-n="4">The Tenant shall not make any structural changes or alterations without prior written consent of the Landlord.</div>
-      <div class="agr-clause" data-n="5">The Landlord or authorized representative may inspect the premises with 24 hours prior notice.</div>
-      <div class="agr-clause" data-n="6">Security deposit of <strong>₹${fmt(d.deposit)}</strong> shall be refunded within 30 days of vacating, after deducting any outstanding dues or damages.</div>
-      <div class="agr-clause" data-n="7">Either party shall give <strong>${d.notice} days</strong> written notice before terminating this agreement. Early exit within lock-in period of ${d.lockin} months shall attract penalty.</div>
-      <div class="agr-clause" data-n="8">The Tenant shall not indulge in any illegal, immoral, or anti-social activity on the premises. Violation leads to immediate termination.</div>
-      <div class="agr-clause" data-n="9">The rent shall be increased by <strong>${d.increment}%</strong> per annum on the anniversary date of this agreement.</div>
-      <div class="agr-clause" data-n="10">Any dispute arising from this agreement shall be resolved under the jurisdiction of courts in the locality of the property.</div>
-    </div>
-
-    <!-- SIGNATURES -->
-    <div class="agr-section">
-      <div class="agr-section-title">✍️ Signatures (हस्ताक्षर)</div>
-      <div class="agr-sig">
-        <div class="agr-sig-box">
-          <h4>🏠 Landlord (मकान मालिक)</h4>
-          <p style="margin:4px 0;font-size:12px"><strong>${d.llName}</strong></p>
-          <p style="margin:4px 0;font-size:12px">Mobile: ${d.llMobile}</p>
-          <div class="agr-sig-line"></div>
-          <p style="font-size:11px;color:#888;margin:0">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: __________</p>
-        </div>
-        <div class="agr-sig-box">
-          <h4>👤 Tenant (किरायेदार)</h4>
-          <p style="margin:4px 0;font-size:12px"><strong>${d.tnName}</strong></p>
-          <p style="margin:4px 0;font-size:12px">Mobile: ${d.tnMobile}</p>
-          <div class="agr-sig-line"></div>
-          <p style="font-size:11px;color:#888;margin:0">Signature &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: __________</p>
-        </div>
-      </div>
-      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">
-        <div class="agr-sig-box" style="background:#fafafa">
-          <h4 style="color:#555">Witness 1 (गवाह)</h4>
-          <p style="font-size:11px;color:#888;margin:4px 0">Name: ________________________</p>
-          <p style="font-size:11px;color:#888;margin:4px 0">Mobile: _______________________</p>
-          <div class="agr-sig-line"></div>
-          <p style="font-size:11px;color:#888;margin:0">Signature</p>
-        </div>
-        <div class="agr-sig-box" style="background:#fafafa">
-          <h4 style="color:#555">Witness 2 (गवाह)</h4>
-          <p style="font-size:11px;color:#888;margin:4px 0">Name: ________________________</p>
-          <p style="font-size:11px;color:#888;margin:4px 0">Mobile: _______________________</p>
-          <div class="agr-sig-line"></div>
-          <p style="font-size:11px;color:#888;margin:0">Signature</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="agr-footer-note">
-      This agreement is executed on a stamp paper of ₹_______ as required by law. &nbsp;|&nbsp; RentPro Property Manager &nbsp;|&nbsp; Generated on ${new Date().toLocaleDateString('en-IN')}
-    </div>
-  </div>`;
+  return '<div style="font-family:Arial,sans-serif;color:#111;background:#fff;">'
+   +'<div style="text-align:center;border-bottom:3px solid #1a56db;padding-bottom:16px;margin-bottom:20px">'
+   +'<div style="font-size:44px">🏠</div>'
+   +'<div style="font-size:24px;font-weight:900;color:#1a56db;letter-spacing:1px">RENT AGREEMENT</div>'
+   +'<div style="color:#666;margin-top:2px">(\u0915\u093f\u0930\u093e\u092f\u093e \u0938\u092e\u091d\u094c\u0924\u093e)</div>'
+   +'<div style="font-size:12px;color:#888;margin-top:6px">Dated: '+d.agrDate+'</div></div>'
+   +'<p style="line-height:1.8;margin-bottom:16px;font-size:13px">This Rent Agreement is entered into on <strong>'+d.agrDate+'</strong> between:</p>'
+   +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">'
+   +'<div style="border:2px solid #1a56db;border-radius:8px;overflow:hidden">'
+   +'<div style="background:#1a56db;color:#fff;font-weight:700;padding:7px 12px;font-size:12px">🏠 LANDLORD</div>'
+   +'<table style="width:100%;border-collapse:collapse">'
+   +row('Name',d.llName,'#EFF6FF')+row('Father','S/o '+d.llFather,'#EFF6FF')
+   +row('Mobile',d.llMobile,'#EFF6FF')+row('Aadhaar',d.llAadhaar,'#EFF6FF')
+   +row('Address',d.llAddress,'#EFF6FF')+'</table></div>'
+   +'<div style="border:2px solid #d97706;border-radius:8px;overflow:hidden">'
+   +'<div style="background:#d97706;color:#fff;font-weight:700;padding:7px 12px;font-size:12px">👤 TENANT</div>'
+   +'<table style="width:100%;border-collapse:collapse">'
+   +row('Name',d.tnName,'#FFFBEB')+row('Father','S/o '+d.tnFather,'#FFFBEB')
+   +row('Mobile',d.tnMobile,'#FFFBEB')+row('Aadhaar',d.tnAadhaar,'#FFFBEB')
+   +row('Address',d.tnAddress,'#FFFBEB')+row('Occupation',d.tnOccup,'#FFFBEB')
+   +'</table></div></div>'
+   +'<div style="border:2px solid #059669;border-radius:8px;overflow:hidden;margin-bottom:14px">'
+   +'<div style="background:#059669;color:#fff;font-weight:700;padding:7px 12px;font-size:12px">🏢 PROPERTY</div>'
+   +'<table style="width:100%;border-collapse:collapse">'
+   +row('Address',d.propAddr,'#F0FDF4')+row('Room / Flat No.',d.roomNo,'#F0FDF4')
+   +row('Floor',d.floor,'#F0FDF4')+row('Type / Furnished',d.roomType+' / '+d.furnished,'#F0FDF4')
+   +'</table></div>'
+   +'<div style="border:2px solid #dc2626;border-radius:8px;overflow:hidden;margin-bottom:14px">'
+   +'<div style="background:#dc2626;color:#fff;font-weight:700;padding:7px 12px;font-size:12px">💰 FINANCIAL TERMS</div>'
+   +'<table style="width:100%;border-collapse:collapse">'+fin+'</table></div>'
+   +'<div style="border:2px solid #7c3aed;border-radius:8px;overflow:hidden;margin-bottom:14px">'
+   +'<div style="background:#7c3aed;color:#fff;font-weight:700;padding:7px 12px;font-size:12px">📅 TENURE</div>'
+   +'<table style="width:100%;border-collapse:collapse">'
+   +'<tr><td style="padding:6px 12px;background:#F5F0FF;font-weight:600;width:25%;border-bottom:1px solid #e5e7eb;font-size:12px">Start</td>'
+   +'<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px;width:25%">'+d.startDate+'</td>'
+   +'<td style="padding:6px 12px;background:#F5F0FF;font-weight:600;border-bottom:1px solid #e5e7eb;font-size:12px;width:25%">End</td>'
+   +'<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">'+d.endDate+'</td></tr>'
+   +'<tr><td style="padding:6px 12px;background:#F5F0FF;font-weight:600;border-bottom:1px solid #e5e7eb;font-size:12px">Duration</td>'
+   +'<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">'+d.duration+'</td>'
+   +'<td style="padding:6px 12px;background:#F5F0FF;font-weight:600;border-bottom:1px solid #e5e7eb;font-size:12px">Lock-in</td>'
+   +'<td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">'+d.lockin+'</td></tr>'
+   +'<tr><td style="padding:6px 12px;background:#F5F0FF;font-weight:600;font-size:12px">Notice</td>'
+   +'<td style="padding:6px 12px;font-size:12px">'+d.notice+'</td>'
+   +'<td style="padding:6px 12px;background:#F5F0FF;font-weight:600;font-size:12px">Increment</td>'
+   +'<td style="padding:6px 12px;font-size:12px">'+d.increment+'</td></tr>'
+   +'</table></div>'
+   +'<div style="margin-bottom:14px">'
+   +'<div style="font-weight:800;font-size:13px;color:#1a56db;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #1a56db">📋 TERMS & CONDITIONS</div>'
+   +'<ol style="line-height:2;padding-left:18px;font-size:12px;color:#333">'
+   +'<li>Tenant shall pay monthly rent by <strong>every '+d.dueDay+' of the month</strong>. Delay attracts <strong>'+d.lateFine+'</strong> late fine.</li>'
+   +'<li>Premises for <strong>residential use only</strong>. Subletting prohibited without written consent.</li>'
+   +'<li>Tenant shall maintain premises in good condition. Damage repaired at Tenant\'s cost.</li>'
+   +'<li>No structural changes without Landlord\'s written permission.</li>'
+   +'<li>Landlord may inspect with <strong>24 hours prior notice</strong>.</li>'
+   +'<li>Security deposit refunded within 30 days of vacating after deducting dues.</li>'
+   +'<li>No illegal activities on premises. Violation = immediate termination.</li>'
+   +'<li>Either party to give <strong>'+d.notice+'</strong> before termination.</li>'
+   +'<li>Rent increases by <strong>'+d.increment+'</strong> annually from next year.</li>'
+   +'<li>Disputes resolved amicably or via appropriate court of jurisdiction.</li>'
+   +'</ol></div>'
+   +'<div style="margin-bottom:14px">'
+   +'<div style="font-weight:800;font-size:13px;color:#1a56db;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #1a56db">👥 WITNESSES</div>'
+   +'<table style="width:100%;border-collapse:collapse"><tr>'
+   +'<td style="border:1px solid #ddd;padding:12px;width:50%;font-size:12px"><strong>Witness 1</strong><br><br>Name: ___________________________<br>Mobile: _________________________<br><br><br>Signature: ______________________</td>'
+   +'<td style="border:1px solid #ddd;padding:12px;font-size:12px"><strong>Witness 2</strong><br><br>Name: ___________________________<br>Mobile: _________________________<br><br><br>Signature: ______________________</td>'
+   +'</tr></table></div>'
+   +'<div><div style="font-weight:800;font-size:13px;color:#1a56db;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #1a56db">✍️ SIGNATURES</div>'
+   +'<p style="font-size:12px;color:#555;margin-bottom:14px">Both parties confirm they have read and agreed to all terms.</p>'
+   +'<table style="width:100%;border-collapse:collapse"><tr>'
+   +'<td style="border:2px solid #1a56db;border-radius:8px;padding:14px;width:48%;vertical-align:top;font-size:12px">'
+   +'<div style="font-weight:800;color:#1a56db;margin-bottom:16px">🏠 LANDLORD</div>'
+   +'<br><br>Signature: ___________________<br><br>'
+   +'Name: <strong>'+d.llName+'</strong><br>Date: ______________________<br>Place: _____________________</td>'
+   +'<td style="width:4%"></td>'
+   +'<td style="border:2px solid #d97706;border-radius:8px;padding:14px;width:48%;vertical-align:top;font-size:12px">'
+   +'<div style="font-weight:800;color:#d97706;margin-bottom:16px">👤 TENANT</div>'
+   +'<br><br>Signature: ___________________<br><br>'
+   +'Name: <strong>'+d.tnName+'</strong><br>Date: ______________________<br>Place: _____________________</td>'
+   +'</tr></table></div>'
+   +'<div style="text-align:center;font-size:11px;color:#888;border-top:1px dashed #ccc;padding-top:10px;margin-top:14px">'
+   +'Executed on stamp paper as required by law &nbsp;|&nbsp; Generated via RentPro</div></div>';
 }
 
 function previewAgreement() {
-  const d = getAgreementData();
-  const preview = document.getElementById('agreementPreview');
+  var d = getAgreementData();
+  var preview = document.getElementById('agreementPreview');
   preview.style.display = 'block';
-  preview.innerHTML = `
-    <div style="border:2px solid var(--border);border-radius:16px;overflow:hidden;margin-top:8px">
-      <div style="background:var(--primary);padding:12px 20px;display:flex;justify-content:space-between;align-items:center">
-        <span style="color:white;font-weight:700;font-size:15px">📄 Agreement Preview</span>
-        <div style="display:flex;gap:8px">
-          <button onclick="printAgreement()" class="btn btn-sm" style="background:white;color:var(--primary);font-weight:700">🖨️ Print / PDF</button>
-          <button onclick="shareAgreementWhatsApp()" class="btn btn-sm" style="background:#25D366;color:white;font-weight:700">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white" style="vertical-align:middle;margin-right:3px"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-            WhatsApp
-          </button>
-        </div>
-      </div>
-      <div style="background:white;padding:0">
-        ${buildAgreementHTML(d)}
-      </div>
-    </div>`;
-  preview.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  preview.innerHTML = '<div class="card" style="padding:0;overflow:hidden">'
+    +'<div style="background:linear-gradient(135deg,#1a56db,#7c3aed);padding:12px 18px;display:flex;justify-content:space-between;align-items:center">'
+    +'<div style="font-weight:800;color:#fff;font-size:15px">📄 Agreement Preview</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button onclick="printAgreement()" class="btn btn-sm" style="background:#fff;color:#1a56db;font-weight:700">🖨️ Print / PDF</button>'
+    +'<button onclick="shareAgreementWhatsApp()" class="btn btn-sm" style="background:#25D366;color:#fff;font-weight:700">WhatsApp</button>'
+    +'</div></div>'
+    +'<div style="padding:20px">'+buildAgreementHTML(d)+'</div></div>';
+  preview.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function printAgreement() {
-  const d = getAgreementData();
-  const html = buildAgreementHTML(d, true);
-  const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><title>Rent Agreement - ${d.tnName}</title>
-    <style>@media print{body{margin:0}button{display:none!important}}</style>
-    </head><body>${html}
-    <div style="text-align:center;padding:20px;display:flex;gap:12px;justify-content:center" class="no-print">
-      <button onclick="window.print()" style="padding:10px 28px;background:#1a56db;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer">🖨️ Print / Save as PDF</button>
-      <button onclick="window.close()" style="padding:10px 28px;background:#f1f5f9;color:#333;border:none;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
-    </div>
-  
+  var d = getAgreementData();
+  var win = window.open('','_blank','width=860,height=700');
+  win.document.write('<!DOCTYPE html><html><head><title>Rent Agreement - '+d.tnName+'<\/title>'
+    +'<meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:Arial,sans-serif;background:#fff}'
+    +'.bar{display:flex;gap:10px;justify-content:center;padding:10px;background:#f1f5f9;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:9}'
+    +'.bar button{padding:8px 18px;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}'
+    +'.bp{background:#1a56db;color:#fff}.bw{background:#25D366;color:#fff}.bc{background:#64748b;color:#fff}'
+    +'@media print{.bar{display:none!important}@page{margin:1cm;size:A4}}<\/style><\/head><body>');
+  win.document.write('<div class="bar">'
+    +'<button class="bp" onclick="window.print()">🖨️ Print<\/button>'
+    +'<button class="bp" onclick="window.print()">📄 Save as PDF<\/button>'
+    +'<button class="bc" onclick="window.close()">✕ Close<\/button><\/div>');
+  win.document.write('<div style="padding:24px;max-width:800px;margin:0 auto">');
+  win.document.write(buildAgreementHTML(d));
+  win.document.write('<\/div><\/body><\/html>');
+  win.document.close();
+}
+
+function shareAgreementWhatsApp() {
+  var d = getAgreementData();
+  var mobile = d.tnMobile;
+  if (!mobile || mobile.length < 10) { toast('Pehle tenant mobile number fill karo', 'error'); return; }
+  var msg = 'Namaskar ' + d.tnName + ' ji!\n\nAapka Rent Agreement taiyar hai:\n\n'
+    + '\uD83C\uDFE0 Property: ' + d.propAddr + '\n'
+    + '\uD83D\uDEAA Room: ' + d.roomNo + '\n'
+    + '\uD83D\uDCB0 Monthly Rent: ' + d.rent + '\n'
+    + '\uD83D\uDCC5 Start: ' + d.startDate + '\n'
+    + '\u23F0 Duration: ' + d.duration + '\n\n'
+    + 'Kripya agreement par sign karke ek copy apne paas rakhein.\n\n'
+    + '- ' + d.llName + '\nRentPro Property Manager';
+  window.open('https://wa.me/91' + mobile + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+
 // ================================================================
 // 🔔 NOTIFICATION SYSTEM
 // ================================================================
-let _notifs = [];
-let _notifOpen = false;
+var _notifs = [];
+var _notifOpen = false;
 
 async function loadNotifications() {
-  const res = await api('getNotifications', {}).catch(() => null);
-  if (!res || !res.success) return;
-  _notifs = res.data || [];
-  renderNotifBadge();
-  if (_notifOpen) renderNotifList();
+  try {
+    var res = await api('getNotifications', {});
+    if (!res || !res.success) return;
+    _notifs = res.data || [];
+    renderNotifBadge();
+    if (_notifOpen) renderNotifList();
+  } catch(e) {}
 }
 
 function renderNotifBadge() {
-  const unread = isTenant()
-    ? _notifs.filter(n => n.IsRead === 'No').length
-    : 0; // Admin ke liye badge nahi (woh sender hai)
-  const badge = document.getElementById('notifBadge');
+  var unread = isTenant() ? _notifs.filter(function(n){ return n.IsRead === 'No'; }).length : 0;
+  var badge = document.getElementById('notifBadge');
   if (!badge) return;
   if (unread > 0) {
     badge.style.display = 'flex';
-    badge.textContent = unread > 9 ? '9+' : unread;
+    badge.textContent = unread > 9 ? '9+' : String(unread);
   } else {
     badge.style.display = 'none';
   }
-  // Mark all read button
-  const markBtn = document.getElementById('markAllReadBtn');
+  var markBtn = document.getElementById('markAllReadBtn');
   if (markBtn) markBtn.style.display = unread > 0 ? 'block' : 'none';
 }
 
 function toggleNotifDrawer() {
-  if (_notifOpen) closeNotifDrawer();
-  else openNotifDrawer();
+  if (_notifOpen) closeNotifDrawer(); else openNotifDrawer();
 }
 
 async function openNotifDrawer() {
   _notifOpen = true;
   document.getElementById('notifDrawer').classList.add('open');
   document.getElementById('notifOverlay').classList.add('open');
-  // Admin: send form dikhao
-  const sendForm = document.getElementById('notifSendForm');
+  var sendForm = document.getElementById('notifSendForm');
   if (sendForm) sendForm.style.display = isAdmin() ? 'block' : 'none';
-  // Load fresh
   await loadNotifications();
   renderNotifList();
 }
@@ -5093,794 +4316,130 @@ function closeNotifDrawer() {
   document.getElementById('notifOverlay').classList.remove('open');
 }
 
+function notifCard(n) {
+  var isUnread = n.IsRead === 'No';
+  var dot = isUnread ? '<span class="notif-unread-dot"></span>' : '';
+  var forLabel = {All:'All',Active:'Active',Due:'Due Tenants',
+    Room:'Room '+n.ForValue, Tenant:n.ForValue}[n.ForType] || n.ForType;
+  var meta = '<div class="notif-item-meta"><span>👤 '+n.CreatedBy+'</span>'
+    + '<span>🕐 '+(n.CreatedAt?n.CreatedAt.substring(0,16):'')+'</span></div>';
+  var adminPart = '';
+  if (isAdmin()) {
+    var seen = n.SeenCount || 0;
+    var nid = n.NotifID;
+    adminPart = '<div class="notif-seen-info">👁️ Seen by '+seen+' tenant'+(seen===1?'':'s')
+      +(n.SeenBy?' ('+n.SeenBy+')':'')+'</div>'
+      +'<div style="display:flex;justify-content:space-between;margin-top:6px">'
+      +'<span style="font-size:11px;background:var(--primary-light);color:var(--primary);'
+      +'padding:2px 8px;border-radius:10px;font-weight:600">'+forLabel+'</span>'
+      +'<button data-nid="'+nid+'" class="notif-del-btn" style="background:none;border:none;'
+      +'color:#ef4444;font-size:12px;cursor:pointer;font-weight:600">🗑️ Delete</button></div>';
+  }
+  var cls = 'notif-item ' + (isUnread ? 'unread' : 'read');
+  var nid2 = n.NotifID;
+  return '<div class="'+cls+'" data-nid="'+nid2+'">'
+    +'<div class="notif-item-title">'+dot+n.Title+'</div>'
+    +'<div class="notif-item-msg">'+n.Message+'</div>'
+    +meta+adminPart+'</div>';
+}
+
 function renderNotifList() {
-  const el = document.getElementById('notifList');
+  var el = document.getElementById('notifList');
   if (!_notifs.length) {
-    el.innerHTML = `<div style="text-align:center;padding:40px 20px;color:var(--text2)">
-      <div style="font-size:48px;margin-bottom:12px">📭</div>
-      <div style="font-weight:600">Koi notification nahi</div>
-    </div>`;
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text2)">'
+      +'<div style="font-size:48px;margin-bottom:12px">📭</div>'
+      +'<div style="font-weight:600">Koi notification nahi</div></div>';
     return;
   }
+  el.innerHTML = _notifs.map(notifCard).join('');
 
-  el.innerHTML = _notifs.map(n => {
-    const isUnread = n.IsRead === 'No';
-    const forLabel = {
-      All:'👥 All Tenants', Active:'✅ Active', Due:'💰 Due Tenants',
-      Room:'🏠 Room '+n.ForValue, Tenant:'👤 '+n.ForValue
-    }[n.ForType] || n.ForType;
-
-    const adminExtra = isAdmin() ? `
-      <div class="notif-seen-info">👁️ Seen by ${n.SeenCount||0} tenant${n.SeenCount==1?'':'s'}
-        ${n.SeenBy ? ' ('+n.SeenBy+')' : ''}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
-        <span style="font-size:11px;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:10px;font-weight:600">${forLabel}</span>
-        <button onclick="deleteNotif('${n.NotifID}')"
-          style="background:none;border:none;color:#ef4444;font-size:12px;cursor:pointer;font-weight:600">🗑️ Delete</button>
-      </div>` : '';
-
-    return `<div class="notif-item ${isUnread?'unread':'read'}" onclick="readNotif('${n.NotifID}',this)">
-      <div class="notif-item-title">
-        ${isUnread ? '<span class="notif-unread-dot"></span>' : ''}
-        ${n.Title}
-      </div>
-      <div class="notif-item-msg">${n.Message}</div>
-      <div class="notif-item-meta">
-        <span>👤 ${n.CreatedBy}</span>
-        <span>🕐 ${n.CreatedAt ? n.CreatedAt.substring(0,16) : ''}</span>
-      </div>
-      ${adminExtra}
-    </div>`;
-  }).join('');
+  // Event delegation
+  el.querySelectorAll('.notif-item').forEach(function(card) {
+    card.addEventListener('click', function(e) {
+      if (e.target.classList.contains('notif-del-btn')) {
+        deleteNotif(e.target.dataset.nid);
+      } else {
+        readNotif(card.dataset.nid, card);
+      }
+    });
+  });
 }
 
 async function readNotif(notifId, el) {
   if (!isTenant()) return;
-  // Mark as read locally
-  const n = _notifs.find(n => n.NotifID === notifId);
+  var n = _notifs.find(function(x){ return x.NotifID === notifId; });
   if (n && n.IsRead === 'No') {
     n.IsRead = 'Yes';
     el.classList.remove('unread');
     el.classList.add('read');
-    el.querySelector('.notif-unread-dot')?.remove();
+    var dot = el.querySelector('.notif-unread-dot');
+    if (dot) dot.remove();
     renderNotifBadge();
-    // API call background mein
-    api('markNotifRead', { NotifID: notifId }).catch(() => null);
+    api('markNotifRead', { NotifID: notifId }).catch(function(){});
   }
 }
 
 async function markAllRead() {
   if (!isTenant()) return;
-  _notifs.forEach(n => n.IsRead = 'Yes');
+  _notifs.forEach(function(n){ n.IsRead = 'Yes'; });
   renderNotifBadge();
   renderNotifList();
-  await api('markAllNotifsRead', {}).catch(() => null);
+  api('markAllNotifsRead', {}).catch(function(){});
 }
 
 async function deleteNotif(notifId) {
   if (!isAdmin()) return;
   if (!confirm('Yeh notification delete karo?')) return;
-  const res = await api('deleteNotification', { NotifID: notifId });
+  var res = await api('deleteNotification', { NotifID: notifId });
   if (res.success) {
-    _notifs = _notifs.filter(n => n.NotifID !== notifId);
+    _notifs = _notifs.filter(function(n){ return n.NotifID !== notifId; });
     renderNotifList();
     toast('Notification deleted', 'success');
   }
 }
 
-// Admin: ForType change pe value dropdown
 function onNotifTypeChange() {
-  const type = document.getElementById('ntf_for_type').value;
-  const valSel = document.getElementById('ntf_for_value');
+  var type = document.getElementById('ntf_for_type').value;
+  var valSel = document.getElementById('ntf_for_value');
   valSel.style.display = (type === 'Room' || type === 'Tenant') ? 'block' : 'none';
   if (type === 'Room') {
-    const rooms = [...new Set(allTenants.filter(t=>t.Status==='Active').map(t=>t.RoomNo))].sort((a,b)=>parseInt(a)-parseInt(b));
-    valSel.innerHTML = rooms.map(r => `<option value="${r}">Room ${r}</option>`).join('');
+    var rooms = [];
+    allTenants.filter(function(t){ return t.Status==='Active'; }).forEach(function(t){
+      if (rooms.indexOf(t.RoomNo) === -1) rooms.push(t.RoomNo);
+    });
+    rooms.sort(function(a,b){ return parseInt(a)-parseInt(b); });
+    valSel.innerHTML = rooms.map(function(r){
+      return '<option value="'+r+'">Room '+r+'</option>';
+    }).join('');
   } else if (type === 'Tenant') {
-    valSel.innerHTML = allTenants.filter(t=>t.Status==='Active')
-      .sort((a,b)=>parseInt(a.RoomNo)-parseInt(b.RoomNo))
-      .map(t => `<option value="${t.TenantID}">${t.Name} (Room ${t.RoomNo})</option>`).join('');
+    var list = allTenants.filter(function(t){ return t.Status==='Active'; });
+    list.sort(function(a,b){ return parseInt(a.RoomNo)-parseInt(b.RoomNo); });
+    valSel.innerHTML = list.map(function(t){
+      return '<option value="'+t.TenantID+'">'+t.Name+' (Room '+t.RoomNo+')</option>';
+    }).join('');
   }
 }
 
 async function sendNotification() {
-  const title = document.getElementById('ntf_title').value.trim();
-  const msg   = document.getElementById('ntf_msg').value.trim();
-  const type  = document.getElementById('ntf_for_type').value;
-  const valSel = document.getElementById('ntf_for_value');
-  const val   = (type === 'Room' || type === 'Tenant') ? valSel.value : '';
+  var title = document.getElementById('ntf_title').value.trim();
+  var msg   = document.getElementById('ntf_msg').value.trim();
+  var type  = document.getElementById('ntf_for_type').value;
+  var valSel = document.getElementById('ntf_for_value');
+  var val = (type === 'Room' || type === 'Tenant') ? valSel.value : '';
   if (!title || !msg) { toast('Title aur Message dono bharo', 'error'); return; }
-  const res = await api('addNotification', { Title:title, Message:msg, ForType:type, ForValue:val });
+  var res = await api('addNotification', { Title:title, Message:msg, ForType:type, ForValue:val });
   if (res.success) {
-    toast('✅ Notification send ho gayi!', 'success');
+    toast('Notification send ho gayi!', 'success');
     document.getElementById('ntf_title').value = '';
     document.getElementById('ntf_msg').value = '';
     await loadNotifications();
     renderNotifList();
-  } else toast(res.error || 'Error', 'error');
+  } else { toast(res.error || 'Error', 'error'); }
 }
 
-// Auto load on initApp
-const _origInitApp = typeof initApp === 'function' ? initApp : null;
-<script>
-// Notification auto-load after login
-document.addEventListener('DOMContentLoaded', () => {
-  // Load notifications every 2 min in background
-  setInterval(() => {
-    if (STATE.token) loadNotifications();
-  }, 2 * 60 * 1000);
-});
-</script>
-</body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 600);
-}
-
-function shareAgreementWhatsApp() {
-  const d = getAgreementData();
-  if (!d.tnMobile || d.tnMobile === '_______________') {
-    toast('Tenant ka mobile number fill karo pehle', 'error'); return;
-  }
-  const msg = `🏠 *RENT AGREEMENT*\n\nNamaskar *${d.tnName}* ji,\n\nAapka Rent Agreement tayar ho gaya hai.\n\n📋 *Details:*\n• Room No: ${d.roomNo}\n• Monthly Rent: ₹${fmt(d.rent)}\n• Start Date: ${d.startDate}\n• Security Deposit: ₹${fmt(d.deposit)}\n• Rent Due: Har mahine ${d.dueDay} tarikh\n\nKripya agreement padh kar sign karein.\n\n— *${d.llName}*\n📱 ${d.llMobile}\n\n_Powered by RentPro_`;
-  window.open('https://wa.me/91' + d.tnMobile.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
-}
-
-// ===================== USERS =====================
-async function loadUsers() {
-  const res = await api('getUsers');
-  const users = res.data || [];
-  window._loadedUsers = users; // Cache for openEditUser
-  const el = document.getElementById('usersList');
-  if (!users.length) { el.innerHTML = emptyState('👤', 'No users', ''); return; }
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Name</th><th>Mobile</th><th>Email</th><th>Role</th><th>UPI ID</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody>
-          ${users.map(u => `<tr>
-            <td><strong>${u.Name}</strong></td>
-            <td>${u.Mobile}</td>
-            <td style="font-size:12px">${u.Email || '—'}</td>
-            <td><span class="badge ${u.Role === 'Admin' ? 'badge-info' : 'badge-secondary'}">${u.Role}</span></td>
-            <td class="text-sm">${u.UPIIds || '—'}</td>
-            <td><span class="badge ${u.Active === 'Yes' ? 'badge-success' : 'badge-danger'}">${u.Active === 'Yes' ? 'Active' : 'Inactive'}</span></td>
-            <td><div class="actions-cell">
-              <button class="act-btn edit" onclick="openEditUser('${u.UserID}')" data-tip="Edit User"><span class="act-icon">✏️</span></button>
-              ${u.Role !== 'Admin'
-                ? `<button class="act-btn del" onclick="deleteUser('${u.UserID}','${u.Name}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>`
-                : `<span style="font-size:10px;color:var(--text2);padding:4px 6px;background:var(--surface2);border-radius:6px">🔒 Admin</span>`
-              }
-            </div></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-async function saveUser() {
-  const data = {
-    Name: document.getElementById('usr_name').value.trim(),
-    Mobile: document.getElementById('usr_mobile').value.trim(),
-    Password: document.getElementById('usr_pass').value,
-    Role: document.getElementById('usr_role').value,
-    Email: document.getElementById('usr_email') ? document.getElementById('usr_email').value.trim() : '',
-    UPIIds: document.getElementById('usr_upi').value.trim()
-  };
-  if (!data.Name || !data.Mobile || !data.Password) { toast('Fill all required fields', 'error'); return; }
-  const res = await api('addUser', data);
-  if (res.success) { toast('User added!', 'success'); hideModal('addUserModal'); loadUsers(); }
-  else toast(res.error, 'error');
-}
-
-async function deleteUser(id, name) {
-  confirm_action(`Delete user "${name}"?`, 'This action cannot be undone.', async () => {
-    const res = await api('deleteUser', { UserID: id });
-    if (res.success) { toast('User deleted!', 'success'); loadUsers(); }
-    else toast(res.error, 'error');
-  });
-}
-
-// ===================== REPORTS =====================
-async function loadReport(type) {
-  const res = await api('getReport', { type });
-  const el = document.getElementById('reportContent');
-  if (!res.success) { el.innerHTML = '<p class="text-muted">Failed to load report</p>'; return; }
-
-  const data = res.data;
-  if (!data.length) { el.innerHTML = emptyState('📊', 'No data', 'No records found'); return; }
-
-  const keys = Object.keys(data[0]);
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">${type.charAt(0).toUpperCase() + type.slice(1)} Report (${data.length} records)</div>
-        <button class="btn btn-sm btn-primary" onclick="exportTableToCSV()">⬇️ Download CSV</button>
-      </div>
-      <div class="table-wrap">
-        <table id="reportTable">
-          <thead><tr>${keys.map(k => `<th>${k}</th>`).join('')}</tr></thead>
-          <tbody>${data.map(row => `<tr>${keys.map(k => `<td>${row[k] !== undefined ? row[k] : '—'}</td>`).join('')}</tr>`).join('')}</tbody>
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function exportTableToCSV() {
-  const table = document.getElementById('reportTable');
-  if (!table) return;
-  const rows = [...table.querySelectorAll('tr')];
-  const csv = rows.map(r => [...r.querySelectorAll('th,td')].map(c => `"${c.textContent}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'rentpro_report.csv';
-  a.click();
-}
-
-function exportData() {
-  toast('Use the Reports page to export data as CSV', 'warning');
-  showPage('reports');
-}
-
-// ===================== AUDIT LOGS =====================
-async function loadAuditLogs() {
-  const res = await api('getAuditLogs');
-  const logs = res.data || [];
-  const el = document.getElementById('auditList');
-  if (!logs.length) { el.innerHTML = emptyState('🔍', 'No logs yet', 'System activity will appear here'); return; }
-  el.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>Action</th><th>User</th><th>Details</th><th>Timestamp</th></tr></thead>
-        <tbody>
-          ${logs.map(l => `<tr>
-            <td><span class="badge badge-info">${l.Action}</span></td>
-            <td><strong>${l.UserName}</strong></td>
-            <td>${l.Details}</td>
-            <td class="text-sm text-muted">${fmtDate(l.Timestamp)}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
-  `;
-}
-
-// ===================== PAY NOW (TENANT) =====================
-async function showPayNow() {
-  const adminsData = STATE.data.adminUPIs || [];
-
-  // Cache se lo — API call nahi (preloadAllData pe already load ho chuka hai)
-  let unpaidBills = (allBills || []).filter(b =>
-    b.TenantID === STATE.user.id && b.Status !== 'Paid'
-  );
-
-  // Agar cache empty hai (pehli baar) tabhi API call karo
-  if (!unpaidBills.length && allBills.length === 0) {
-    const bills = await api('getBills', { TenantID: STATE.user.id });
-    unpaidBills = (bills.data || []).filter(b => b.Status !== 'Paid');
-  }
-
-  // Dues accurately calculate karo (payments minus karke)
-  const totalDue = unpaidBills.reduce((s, b) => {
-    const paid = (allPayments || [])
-      .filter(p => p.BillID === b.BillID)
-      .reduce((ps, p) => ps + (parseFloat(p.AmountPaid) || 0), 0);
-    return s + Math.max(0, parseFloat(b.TotalAmount || 0) - paid);
-  }, 0);
-
-  const container = document.getElementById('payNowAdmins');
-  container.innerHTML = `
-    <p class="text-muted text-sm" style="grid-column:1/-1;margin-bottom:8px">Amount due: <strong class="text-danger">₹${fmt(totalDue)}</strong> — Select landlord to pay</p>
-    ${adminsData.map((a, i) => `
-      <div class="upi-card" onclick="selectPayAdmin(${i}, '${a.upi}', '${a.name}', ${totalDue})" id="adminCard${i}">
-        <div style="font-size:28px;margin-bottom:8px">👤</div>
-        <div class="upi-name">${a.name}</div>
-        <div class="upi-id">${a.upi || 'UPI ID not set'}</div>
-      </div>
-    `).join('')}
-  `;
-  document.getElementById('payNowUPILink').style.display = 'none';
-  STATE._payAdmins = adminsData;
-  showModal('payNowModal');
-}
-
-function selectPayAdmin(idx, upiId, name, amount) {
-  document.querySelectorAll('.upi-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('adminCard' + idx).classList.add('selected');
-  
-  const tenantName = STATE.user.name;
-  const billRef = `RENT_${STATE.user.roomNo}_${new Date().getMonth() + 1}`;
-  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${amount}&cu=INR&tn=${encodeURIComponent(billRef)}`;
-  
-  document.getElementById('payNowLink').href = upiLink;
-  document.getElementById('payNowLink').textContent = `💳 Pay ₹${fmt(amount)} to ${name}`;
-  document.getElementById('payNowUPILink').style.display = 'block';
-  STATE._selectedAdmin = { name, mobile: STATE._payAdmins[idx]?.mobile };
-}
-
-// ===================== WHATSAPP =====================
-function openWhatsApp() {
-  const admins = STATE.data.adminUPIs || STATE._payAdmins || [];
-  if (!admins.length) { toast('Koi admin contact nahi mila', 'error'); return; }
-  // Show WhatsApp selection modal
-  const tenantName = STATE.user ? STATE.user.name : '';
-  const roomNo = STATE.user ? STATE.user.roomNo : '';
-  const container = document.getElementById('whatsappAdmins');
-  container.innerHTML = admins.map((a, i) => `
-    <div class="upi-card" onclick="sendWhatsApp('${a.mobile}','${a.name}','${tenantName}','${roomNo}')" style="cursor:pointer">
-      <div style="font-size:32px;margin-bottom:8px">💬</div>
-      <div class="upi-name">${a.name}</div>
-      <div class="upi-id" style="color:#25D366;font-weight:600">+91 ${a.mobile}</div>
-      <div style="margin-top:10px"><span style="background:#25D366;color:white;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700">WhatsApp pe bhejo →</span></div>
-    </div>
-  `).join('');
-  showModal('whatsappModal');
-}
-
-function sendWhatsApp(mobile, adminName, tenantName, roomNo) {
-  const msg = encodeURIComponent(`Hello ${adminName},\n\nMain ${tenantName} hun, Room ${roomNo} se.\n\nKiraya ke baare mein baat karni thi. Kripya confirm karein.\n\nDhanyavaad!`);
-  window.open(`https://wa.me/91${mobile}?text=${msg}`, '_blank');
-  hideModal('whatsappModal');
-}
-
-// ===================== CONFIRM MODAL =====================
-function confirm_action(title, message, callback) {
-  document.getElementById('confirmTitle').textContent = title;
-  // innerHTML use karo - \n ko <br> mein convert karo
-  document.getElementById('confirmMessage').innerHTML = message.replace(/\n/g, '<br>');
-  document.getElementById('confirmBtn').onclick = () => { hideModal('confirmModal'); callback(); };
-  showModal('confirmModal');
-}
-
-// ===================== MODAL HELPERS =====================
-function showModal(id) {
-  document.getElementById(id).classList.add('show');
-  // Appearances modal khule to active theme highlight karo
-  if (id === 'appearancesModal') {
-    const saved = localStorage.getItem('rentpro_theme') || 'ocean';
-    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-    const activeCard = document.getElementById('theme-' + saved);
-    if (activeCard) activeCard.classList.add('active');
-    if (THEMES[saved]) {
-      const nameEl = document.getElementById('currentThemeName');
-      if (nameEl) nameEl.textContent = THEMES[saved].name;
-    }
-  }
-  // Pre-load common selects
-  if (id === 'addTenantModal') loadVacantRooms();
-  if (id === 'addPaymentModal') {
-    // Pehle payments cache karo phir bills load karo
-    api('getPayments', {}).then(r => {
-      STATE._allPayments = r.data || [];
-      loadUnpaidBills();
-    });
-  }
-  if (id === 'addRoomModal') {
-    const sel = document.getElementById('room_prop');
-    sel.innerHTML = STATE.data.properties.map(p => `<option value="${p.PropertyID}">${p.PropertyName}</option>`).join('');
-  }
-  if (id === 'addInventoryModal' || id === 'addDocumentModal') {
-    const tenSel = id === 'addInventoryModal' ? document.getElementById('inv_tenant') : document.getElementById('doc_tenant');
-    tenSel.innerHTML = '<option value="">Select Tenant</option>' + allTenants.filter(t => t.Status === 'Active').map(t => `<option value="${t.TenantID}">${t.Name} (Room ${t.RoomNo})</option>`).join('');
-  }
-}
-
-function hideModal(id) {
-  document.getElementById(id).classList.remove('show');
-}
-
-// ===================== HELPERS =====================
-function fmt(n) {
-  const num = parseFloat(n) || 0;
-  return num.toLocaleString('en-IN');
-}
-
-function fmtDate(d) {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
-  catch { return d; }
-}
-
-function statusBadge(s) {
-  return s === 'Paid' ? 'badge-success' : s === 'Partial' ? 'badge-warning' : 'badge-danger';
-}
-
-function emptyState(icon, title, text) {
-  return `<div class="empty-state"><div class="empty-icon">${icon}</div><div class="empty-title">${title}</div>${text ? `<div class="empty-text">${text}</div>` : ''}</div>`;
-}
-
-function toast(msg, type = 'success') {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.innerHTML = `<span class="toast-icon">${icons[type] || '✅'}</span><span>${msg}</span>`;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
-}
-
-function downloadLastBill() {
-  toast('View Bills to download as PDF', 'info');
-  showPage('bills');
-}
-
-// ===================== AUTO LOGIN =====================
-window.addEventListener('load', () => {
-  if (STATE.token && STATE.user) {
-    startAutoSync();
-    try {
-      initApp();
-    } catch (e) {
-      logout();
-    }
-  }
-  // Set today's date defaults
-  const today = new Date().toISOString().split('T')[0];
-  ['exp_date', 'pay_date'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = today;
-  });
-});
-
-// Close modal on overlay click
-document.querySelectorAll('.overlay').forEach(o => {
-  o.addEventListener('click', (e) => {
-    if (e.target === o) o.classList.remove('show');
-  });
-});
-
-// Keyboard support
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.overlay.show').forEach(o => o.classList.remove('show'));
-  }
-});
-
-
-
-// Edit User
-let _editUserId = null;
-function openEditUser(uid) {
-  const db = dbLoad ? dbLoad() : null;
-  // Try from loaded users data
-  const users = (window._loadedUsers || []);
-  let u = users.find(u => u.UserID === uid);
-
-  if (!u && db) {
-    u = (db.users || []).find(u => u.UserID === uid);
-  }
-
-  if (!u) {
-    // Fetch from API
-    api('getUsers').then(res => {
-      window._loadedUsers = res.data || [];
-      const found = window._loadedUsers.find(u => u.UserID === uid);
-      if (found) populateEditUser(found);
-    });
-    return;
-  }
-  populateEditUser(u);
-}
-
-function populateEditUser(u) {
-  document.getElementById('eu_id').value     = u.UserID;
-  document.getElementById('eu_name').value   = u.Name;
-  document.getElementById('eu_mobile').value = u.Mobile;
-  document.getElementById('eu_email').value  = u.Email || '';
-  document.getElementById('eu_role').value   = u.Role || 'Staff';
-  document.getElementById('eu_upi').value    = u.UPIIds || '';
-  document.getElementById('eu_active').value = u.Active || 'Yes';
-  document.getElementById('eu_pass').value   = '';
-
-  // Apna account edit karte waqt Role aur Active disable karo
-  const isSelf = (u.UserID === STATE.user.id);
-  document.getElementById('eu_role').disabled   = isSelf;
-  document.getElementById('eu_active').disabled = isSelf;
-
-  // Hint show karo
-  const hint = document.getElementById('eu_self_hint');
-  if (hint) hint.style.display = isSelf ? 'block' : 'none';
-
-  showModal('editUserModal');
-}
-
-async function saveEditUser() {
-  const uid = document.getElementById('eu_id').value;
-  const data = {
-    UserID: uid,
-    Name:   document.getElementById('eu_name').value.trim(),
-    Mobile: document.getElementById('eu_mobile').value.trim(),
-    Email:  document.getElementById('eu_email').value.trim(),
-    Role:   document.getElementById('eu_role').value,
-    UPIIds: document.getElementById('eu_upi').value.trim(),
-    Active: document.getElementById('eu_active').value
-  };
-  const newPass = document.getElementById('eu_pass').value;
-  if (newPass) data.Password = newPass;
-
-  if (!data.Name || !data.Mobile) { toast('Naam aur mobile required hai', 'error'); return; }
-
-  // Apne aap ka Role ya Active status change nahi kar sakte (safety)
-  if (uid === STATE.user.id) {
-    delete data.Role;
-    delete data.Active;
-    toast('⚠️ Apna Role/Status change nahi hoga — sirf naam, mobile, email update hoga', 'info');
-  }
-
-  const res = await api('updateUser', data);
-  if (res.success) {
-    toast('✅ User updated!', 'success');
-    hideModal('editUserModal');
-    loadUsers();
-    // Agar apna naam update kiya to sidebar bhi update karo
-    if (uid === STATE.user.id && data.Name) {
-      STATE.user.name = data.Name;
-      localStorage.setItem('rentpro_user', JSON.stringify(STATE.user));
-      document.getElementById('sidebarUserName').textContent = data.Name;
-    }
-  } else {
-    toast(res.error || 'Update nahi hua', 'error');
-  }
-}
-
-// ===================== FORGOT PASSWORD / OTP FLOW =====================
-let _fpResetToken = '';
-let _fpMobile = '';
-
-function showForgotPassword() {
-  goToStep1();
-  showModal('forgotPasswordModal');
-}
-
-function hideForgotPassword() {
-  hideModal('forgotPasswordModal');
-  goToStep1();
-}
-
-function goToStep1() {
-  ['fpStep1','fpStep2','fpStep3','fpStep4'].forEach((id, i) => {
-    document.getElementById(id).style.display = i === 0 ? 'block' : 'none';
-  });
-  document.getElementById('fpMobile').value = '';
-  document.getElementById('fpOTP') && (document.getElementById('fpOTP').value = '');
-}
-
-async function sendOTP() {
-  const mobile = document.getElementById('fpMobile').value.trim();
-  if (mobile.length !== 10) { toast('10-digit mobile number daalo', 'error'); return; }
-
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Bhej raha hun...';
-
-  if (!STATE.apiUrl) {
-    toast('❌ Google Sheet se connect nahi hai! Pehle API URL set karo.', 'error');
-    btn.disabled = false; btn.textContent = '📧 OTP Bhejo';
-    return;
-  }
-
-  const res = await api('forgotPassword', { mobile });
-  btn.disabled = false; btn.textContent = '📧 OTP Bhejo';
-
-  if (res.success) {
-    _fpMobile = mobile;
-    document.getElementById('fpEmailInfo').textContent = 'OTP bheja: ' + res.email;
-    document.getElementById('fpStep1').style.display = 'none';
-    document.getElementById('fpStep2').style.display = 'block';
-    toast('OTP bhej diya! Email check karo 📬', 'success');
-  } else {
-    toast(res.error || 'OTP send nahi hua', 'error');
-  }
-}
-
-async function verifyFpOTP() {
-  const otp = (document.getElementById('fpOTP').value || '').trim();
-  if (otp.length !== 6) { toast('6-digit OTP daalo', 'error'); return; }
-
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Check kar raha hun...';
-
-  const res = await api('verifyOTP', { mobile: _fpMobile, otp });
-  btn.disabled = false; btn.textContent = '✅ OTP Verify Karo';
-
-  if (res.success) {
-    _fpResetToken = res.resetToken;
-    document.getElementById('fpStep2').style.display = 'none';
-    document.getElementById('fpStep3').style.display = 'block';
-    toast('OTP sahi hai! ✅ Naya password set karo', 'success');
-  } else {
-    toast(res.error || 'OTP galat hai', 'error');
-  }
-}
-
-async function doResetPassword() {
-  const pwd1 = document.getElementById('fpNewPwd').value;
-  const pwd2 = document.getElementById('fpConfirmPwd').value;
-  if (pwd1.length < 6) { toast('Password kam se kam 6 characters ka hona chahiye', 'error'); return; }
-  if (pwd1 !== pwd2) { toast('Dono passwords same nahi hain!', 'error'); return; }
-
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Reset ho raha hai...';
-
-  const res = await api('resetPassword', { resetToken: _fpResetToken, newPassword: pwd1 });
-  btn.disabled = false; btn.textContent = '🔑 Password Reset Karo';
-
-  if (res.success) {
-    document.getElementById('fpStep3').style.display = 'none';
-    document.getElementById('fpStep4').style.display = 'block';
-    toast('Password reset ho gaya! 🎉', 'success');
-  } else {
-    toast(res.error || 'Reset nahi hua', 'error');
-  }
-}
-
-
-// ===== TENANT PASSWORD RESET (Admin OTP) =====
-let _rtpNewPwd = '';
-let _rtpTenantId = '';
-let _rtpAdminMobile = '';
-let _rtpResetToken = '';
-
-function openResetTenantPwd(tenantId, tenantName) {
-  _rtpTenantId = tenantId;
-  _rtpNewPwd = '';
-  _rtpResetToken = '';
-  document.getElementById('rtp_tenantId').value = tenantId;
-  document.getElementById('rtp_tenantName').textContent = '👤 ' + tenantName;
-  document.getElementById('rtp_newPwd').value = '';
-  document.getElementById('rtp_confirmPwd').value = '';
-  document.getElementById('rtp_otp').value = '';
-  document.getElementById('rtpStep1').style.display = 'block';
-  document.getElementById('rtpStep2').style.display = 'none';
-  document.getElementById('rtpStep3').style.display = 'none';
-  showModal('resetTenantPwdModal');
-}
-
-async function sendAdminOTPForTenant() {
-  const pwd1 = document.getElementById('rtp_newPwd').value;
-  const pwd2 = document.getElementById('rtp_confirmPwd').value;
-  if (pwd1.length < 6) { toast('Password kam se kam 6 characters ka hona chahiye', 'error'); return; }
-  if (pwd1 !== pwd2) { toast('Dono passwords match nahi kar rahe!', 'error'); return; }
-  _rtpNewPwd = pwd1;
-
-  // Admin ka mobile use karke OTP bhejo
-  const adminMobile = STATE.user.mobile;
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Bhej raha hun...';
-
-  const res = await api('forgotPassword', { mobile: adminMobile });
-  btn.disabled = false; btn.textContent = '📧 Admin Email pe OTP Bhejo';
-
-  if (res.success) {
-    _rtpAdminMobile = adminMobile;
-    document.getElementById('rtp_emailInfo').textContent = 'OTP bheja: ' + (res.email || adminMobile);
-    document.getElementById('rtpStep1').style.display = 'none';
-    document.getElementById('rtpStep2').style.display = 'block';
-    toast('OTP admin email pe bhej diya! ✅', 'success');
-  } else {
-    toast(res.error || 'OTP nahi bheja ja saka. Admin ka email set hai?', 'error');
-  }
-}
-
-async function verifyAdminOTPAndReset() {
-  const otp = (document.getElementById('rtp_otp').value || '').trim();
-  if (otp.length !== 6) { toast('6-digit OTP daalo', 'error'); return; }
-
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '⏳ Verify ho raha hai...';
-
-  // Step 1: OTP verify karo
-  const verifyRes = await api('verifyOTP', { mobile: _rtpAdminMobile, otp });
-  if (!verifyRes.success) {
-    btn.disabled = false; btn.textContent = '✅ Verify karke Reset Karo';
-    toast(verifyRes.error || 'OTP galat hai', 'error');
-    return;
-  }
-
-  // Step 2: Tenant password update karo
-  const updateRes = await api('updateTenant', { TenantID: _rtpTenantId, Password: _rtpNewPwd });
-  btn.disabled = false; btn.textContent = '✅ Verify karke Reset Karo';
-
-  if (updateRes.success) {
-    document.getElementById('rtpStep2').style.display = 'none';
-    document.getElementById('rtpStep3').style.display = 'block';
-    toast('Tenant ka password reset ho gaya! ✅', 'success');
-  } else {
-    toast(updateRes.error || 'Password update nahi hua', 'error');
-  }
-}
-
-// ===================== THEME SYSTEM =====================
-const THEMES = {
-  ocean:    { name: '🌊 Ocean Blue',    fonts: 'Syne + DM Sans' },
-  forest:   { name: '🌿 Forest Green',  fonts: 'Plus Jakarta + Nunito' },
-  royal:    { name: '👑 Royal Purple',  fonts: 'Space Grotesk + Poppins' },
-  sunset:   { name: '🌅 Sunset Orange', fonts: 'Poppins + Outfit' },
-  midnight: { name: '🌙 Midnight Dark', fonts: 'Space Grotesk + Inter' },
-  rosegold: { name: '🌹 Rose Gold',     fonts: 'Nunito + Plus Jakarta' }
-};
-
-function applyTheme(themeName) {
-  // Login page background bhi update karo
-  const loginBg = {
-    ocean:   'linear-gradient(135deg,#e8eaf6 0%,#dbeafe 100%)',
-    forest:  'linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)',
-    royal:   'linear-gradient(135deg,#f3e8ff 0%,#ede9fe 100%)',
-    sunset:  'linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%)',
-    midnight:'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)',
-    rosegold:'linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%)',
-  };
-  const lp = document.getElementById('loginPage');
-  if (lp && loginBg[themeName]) lp.style.background = loginBg[themeName];
-  // Apply to HTML element
-  document.documentElement.setAttribute('data-theme', themeName);
-  
-  // Save to localStorage
-  localStorage.setItem('rentpro_theme', themeName);
-  
-  // Update active card highlight
-  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-  const activeCard = document.getElementById('theme-' + themeName);
-  if (activeCard) activeCard.classList.add('active');
-  
-  // Update current theme info
-  const info = THEMES[themeName];
-  if (info) {
-    const nameEl = document.getElementById('currentThemeName');
-    if (nameEl) nameEl.textContent = info.name;
-  }
-  
-  // Toast
-  toast('Theme changed to ' + (THEMES[themeName]?.name || themeName) + '!', 'success');
-  
-  // Reload charts if on dashboard (colors change)
-  if (STATE.currentPage === 'dashboard' && _dashData) {
-    setTimeout(() => {
-      const type = document.getElementById('chartTypeSelect')?.value || 'monthlyIncomeExpense';
-      renderMainChart(type, _dashData);
-    }, 200);
-  }
-}
-
-function loadSavedTheme() {
-  const saved = localStorage.getItem('rentpro_theme') || 'ocean';
-  document.documentElement.setAttribute('data-theme', saved);
-  // Login page bg bhi theme se match karo
-  const loginBg = {
-    ocean:   'linear-gradient(135deg,#e8eaf6 0%,#dbeafe 100%)',
-    forest:  'linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%)',
-    royal:   'linear-gradient(135deg,#f3e8ff 0%,#ede9fe 100%)',
-    sunset:  'linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%)',
-    midnight:'linear-gradient(135deg,#0f172a 0%,#1e293b 100%)',
-    rosegold:'linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%)',
-  };
-  const lp = document.getElementById('loginPage');
-  if (lp && loginBg[saved]) lp.style.background = loginBg[saved];
-  // Update active card when modal opens
-  setTimeout(() => {
-    document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
-    const activeCard = document.getElementById('theme-' + saved);
-    if (activeCard) activeCard.classList.add('active');
-    const nameEl = document.getElementById('currentThemeName');
-    if (nameEl && THEMES[saved]) nameEl.textContent = THEMES[saved].name;
-  }, 100);
-}
-
-// Load theme on page start
-loadSavedTheme();
-
-// ===================== APP STARTUP =====================
-(function startup() {
-  // Purana invalid token clear karo
-  localStorage.removeItem('rentpro_token');
-  localStorage.removeItem('rentpro_user');
-  STATE.token = '';
-  STATE.user = null;
-  // Login page dikhao
-  document.getElementById('loginPage').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-})();
+setInterval(function() {
+  if (STATE && STATE.token) loadNotifications();
+}, 2 * 60 * 1000);
 
 </script>
 
