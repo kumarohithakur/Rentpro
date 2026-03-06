@@ -4638,6 +4638,123 @@ function onBillSelectChange() {
   }
 }
 
+
+
+// ================================================================
+// RECOVERED: THEMES, INVENTORY, PROPERTIES, DOCUMENTS
+// ================================================================
+
+const THEMES = {
+  ocean:    { name: '🌊 Ocean Blue',    fonts: 'Syne + DM Sans' },
+  forest:   { name: '🌿 Forest Green',  fonts: 'Plus Jakarta + Nunito' },
+  royal:    { name: '👑 Royal Purple',  fonts: 'Space Grotesk + Poppins' },
+  sunset:   { name: '🌅 Sunset Orange', fonts: 'Poppins + Outfit' },
+  midnight: { name: '🌙 Midnight Dark', fonts: 'Space Grotesk + Inter' },
+  rosegold: { name: '🌹 Rose Gold',     fonts: 'Nunito + Plus Jakarta' }
+};
+
+function applyTheme(themeName) {
+  // Apply to HTML element
+  document.documentElement.setAttribute('data-theme', themeName);
+  
+  // Save to localStorage
+  localStorage.setItem('rentpro_theme', themeName);
+  
+  // Update active card highlight
+  document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+  const activeCard = document.getElementById('theme-' + themeName);
+  if (activeCard) activeCard.classList.add('active');
+  
+  // Update current theme info
+  const info = THEMES[themeName];
+  if (info) {
+    const nameEl = document.getElementById('currentThemeName');
+    if (nameEl) nameEl.textContent = info.name;
+  }
+  
+  // Toast
+  toast('Theme changed to ' + (THEMES[themeName]?.name || themeName) + '!', 'success');
+  
+  // Reload charts if on dashboard (colors change)
+  if (STATE.currentPage === 'dashboard' && _dashData) {
+    setTimeout(() => {
+      const type = document.getElementById('chartTypeSelect')?.value || 'monthlyIncomeExpense';
+      renderMainChart(type, _dashData);
+    }, 200);
+  }
+}
+
+async function loadInventory() {
+  const res = await api('getInventory');
+  const inv = res.data || [];
+  const el = document.getElementById('inventoryList');
+  if (!inv.length) { el.innerHTML = emptyState('📦', 'No inventory items', 'Add items for each room'); return; }
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Item</th><th>Room</th><th>Tenant</th><th>Qty</th><th>Condition</th><th>Remarks</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${inv.map(i => `<tr>
+            <td><strong>${i.ItemName}</strong></td>
+            <td>${i.RoomNo}</td>
+            <td>${i.TenantID}</td>
+            <td>${i.Quantity}</td>
+            <td><span class="badge ${i.Condition === 'Good' ? 'badge-success' : i.Condition === 'Fair' ? 'badge-warning' : 'badge-danger'}">${i.Condition}</span></td>
+            <td class="text-muted text-sm">${i.Remarks || '—'}</td>
+            <td><div class="actions-cell">
+              ${isAdmin() ? `<button class="act-btn edit" onclick="openEditInventory('${i.InventoryID}')" data-tip="Edit"><span class="act-icon">✏️</span></button>` : ''}
+              ${isAdmin() ? `<button class="act-btn del" onclick="deleteInventoryItem('${i.InventoryID}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>` : '—'}
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function saveInventory() {
+  const data = {
+    TenantID: document.getElementById('inv_tenant').value,
+    RoomNo: (allTenants.find(t => t.TenantID === document.getElementById('inv_tenant').value) || {}).RoomNo || '',
+    ItemName: document.getElementById('inv_item').value.trim(),
+    Quantity: document.getElementById('inv_qty').value,
+    Condition: document.getElementById('inv_cond').value,
+    Remarks: document.getElementById('inv_remarks').value
+  };
+  if (!data.TenantID || !data.ItemName) { toast('Select tenant and enter item name', 'error'); return; }
+  const res = await api('addInventory', data);
+  if (res.success) { toast('Item added!', 'success'); hideModal('addInventoryModal'); loadInventory(); }
+  else toast(res.error, 'error');
+}
+
+async function loadDocuments() {
+  const res = await api('getDocuments');
+  const docs = res.data || [];
+  const el = document.getElementById('documentsList');
+  if (!docs.length) { el.innerHTML = emptyState('📎', 'No documents', 'Upload tenant documents'); return; }
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
+      ${docs.map(d => `<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:32px;margin-bottom:8px">📄</div>
+            <div style="font-weight:700">${d.DocType}</div>
+            <div style="font-size:13px;color:var(--text2)">${d.TenantName}</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:4px">${d.FileName}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="actions-cell" style="margin-top:8px">
+              ${d.DriveURL && d.DriveURL !== '#' ? `<a href="${d.DriveURL}" target="_blank" class="act-btn view" data-tip="View Doc"><span class="act-icon">👁️</span></a>` : ''}
+              <button class="act-btn del" onclick="deleteDocument('${d.DocID}')" data-tip="Delete"><span class="act-icon">🗑️</span></button>
+            </div>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>
+  `;
+}
+
+
 // ================================================================
 // 🔔 NOTIFICATION SYSTEM
 // ================================================================
