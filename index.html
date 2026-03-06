@@ -1046,14 +1046,34 @@ tr:hover td{background:var(--surface2)}
           <!-- My Details -->
           <div class="card">
             <div class="card-header"><div class="card-title">🏡 Meri Details</div></div>
-            <div style="padding:4px 0">
-              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">
+            <div style="padding:4px 0" id="tenantDetailRows">
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
                 <span style="color:var(--text2)">📅 Joining Date</span>
                 <strong id="tenantJoiningDate">—</strong>
               </div>
-              <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:14px">
-                <span style="color:var(--text2)">💵 Monthly Rent</span>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+                <span style="color:var(--text2)">🏠 Room</span>
+                <strong id="tenantRoomNo">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px">
+                <span style="color:var(--text2)">💵 Rent</span>
                 <strong id="tenantRentAmt">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px" id="tenantMaintRow">
+                <span style="color:var(--text2)">🔧 Maintenance</span>
+                <strong id="tenantMaintAmt">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px" id="tenantElecRow">
+                <span style="color:var(--text2)">⚡ Electricity</span>
+                <strong id="tenantElecAmt">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px" id="tenantWaterRow">
+                <span style="color:var(--text2)">💧 Water</span>
+                <strong id="tenantWaterAmt">—</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px">
+                <span style="color:var(--text2)">🔒 Security Deposit</span>
+                <strong id="tenantSecurityAmt">—</strong>
               </div>
             </div>
           </div>
@@ -3103,7 +3123,43 @@ async function refreshDashboard() {
       tenantInfoEl.style.display = 'block';
       // Joining date
       document.getElementById('tenantJoiningDate').textContent = d.joiningDate ? fmtDate(d.joiningDate) : '—';
-      document.getElementById('tenantRentAmt').textContent = '₹' + fmt(d.rentAmount || 0) + '/month';
+      document.getElementById('tenantRoomNo').textContent    = STATE.user.roomNo || d.roomNo || '—';
+      document.getElementById('tenantRentAmt').textContent   = '₹' + fmt(d.rentAmount || 0) + '/month';
+
+      // Maintenance
+      const maint = parseFloat(d.maintenanceAmount || 0);
+      const maintRow = document.getElementById('tenantMaintRow');
+      if (maintRow) {
+        document.getElementById('tenantMaintAmt').textContent = maint > 0 ? '₹' + fmt(maint) + '/month' : 'Included';
+      }
+
+      // Electricity
+      const elecRow = document.getElementById('tenantElecRow');
+      if (elecRow) {
+        if (d.isMetered === 'Yes') {
+          document.getElementById('tenantElecAmt').textContent = '₹' + fmt(d.ratePerUnit || 0) + '/unit (Meter)';
+        } else if (parseFloat(d.fixedElecAmount || 0) > 0) {
+          document.getElementById('tenantElecAmt').textContent = '₹' + fmt(d.fixedElecAmount) + '/month (Fixed)';
+        } else {
+          document.getElementById('tenantElecAmt').textContent = 'Included in Rent';
+        }
+      }
+
+      // Water
+      const waterRow = document.getElementById('tenantWaterRow');
+      if (waterRow) {
+        const wtype = d.waterType || 'None';
+        const wamt  = parseFloat(d.waterAmount || 0);
+        const wrate = parseFloat(d.waterRatePerKL || 0);
+        if (wtype === 'Fixed' && wamt > 0)       document.getElementById('tenantWaterAmt').textContent = '₹' + fmt(wamt) + '/month';
+        else if (wtype === 'Usage' && wrate > 0)  document.getElementById('tenantWaterAmt').textContent = '₹' + fmt(wrate) + '/unit (Usage)';
+        else                                       document.getElementById('tenantWaterAmt').textContent = 'Included';
+      }
+
+      // Security Deposit
+      const secEl = document.getElementById('tenantSecurityAmt');
+      if (secEl) secEl.textContent = '₹' + fmt(d.securityDeposit || 0);
+
       // Inventory
       const inv = d.myInventory || [];
       const invEl = document.getElementById('tenantInventoryList');
@@ -4662,20 +4718,37 @@ async function saveExpense() {
 
 async function showPayNow() {
   const adminsData = STATE.data.adminUPIs || [];
-  const bills = await api('getBills', { TenantID: STATE.user.id });
-  const unpaidBills = (bills.data || []).filter(b => b.Status !== 'Paid');
-  const totalDue = unpaidBills.reduce((s, b) => s + parseFloat(b.TotalAmount || 0), 0);
+
+  // Cache se bills lo — no fresh API call (instant!)
+  let unpaidBills = (allBills.length ? allBills : (cacheGet('bills_all')?.data || []))
+    .filter(b => b.TenantID === STATE.user.id && b.Status !== 'Paid');
+
+  // Cache miss → fresh fetch (background mein hua nahi to)
+  if (!unpaidBills.length && !allBills.length) {
+    const bills = await api('getBills', { TenantID: STATE.user.id });
+    unpaidBills = (bills.data || []).filter(b => b.Status !== 'Paid');
+    if (bills.data) { allBills = bills.data; cacheSet('bills_all', bills.data); }
+  }
+
+  const totalDue = unpaidBills.reduce((s, b) => {
+    const paid = (STATE._allPayments || [])
+      .filter(p => p.BillID === b.BillID)
+      .reduce((ps, p) => ps + (parseFloat(p.AmountPaid) || 0), 0);
+    return s + Math.max(0, parseFloat(b.TotalAmount || 0) - paid);
+  }, 0);
 
   const container = document.getElementById('payNowAdmins');
   container.innerHTML = `
-    <p class="text-muted text-sm" style="grid-column:1/-1;margin-bottom:8px">Amount due: <strong class="text-danger">₹${fmt(totalDue)}</strong> — Select landlord to pay</p>
-    ${adminsData.map((a, i) => `
+    <p class="text-muted text-sm" style="grid-column:1/-1;margin-bottom:8px">
+      💰 Total Due: <strong style="color:var(--danger);font-size:16px">₹${fmt(totalDue)}</strong> — Landlord ko select karo
+    </p>
+    ${adminsData.length ? adminsData.map((a, i) => `
       <div class="upi-card" onclick="selectPayAdmin(${i}, '${a.upi}', '${a.name}', ${totalDue})" id="adminCard${i}">
         <div style="font-size:28px;margin-bottom:8px">👤</div>
         <div class="upi-name">${a.name}</div>
-        <div class="upi-id">${a.upi || 'UPI ID not set'}</div>
+        <div class="upi-id">${a.upi || 'UPI ID set nahi hai'}</div>
       </div>
-    `).join('')}
+    `).join('') : '<p style="grid-column:1/-1;text-align:center;color:var(--text2)">Landlord UPI set nahi hai. Admin se contact karo.</p>'}
   `;
   document.getElementById('payNowUPILink').style.display = 'none';
   STATE._payAdmins = adminsData;
@@ -4908,6 +4981,92 @@ async function uploadPhotoToDrive(file, tenantName) {
     };
     img.src = url;
   });
+}
+
+
+// ================================================================
+// 💬 WHATSAPP FUNCTIONS
+// ================================================================
+
+function sendDuesWhatsApp(mobile, name, roomNo, dues) {
+  const msg = `Namaskar ${name} ji! 🙏
+
+Yaad dilana chahte hain ki aapka Room ${roomNo} ka:
+
+💰 *Outstanding Dues: ₹${fmt(dues)}*
+
+Kripya jald payment karein.
+
+Shukriya!
+— RentPro`;
+  window.open('https://wa.me/91' + String(mobile) + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function selectPayAdmin(idx, upiId, adminName, totalDue) {
+  // Highlight selected card
+  document.querySelectorAll('.upi-card').forEach(c => c.style.border = '');
+  const card = document.getElementById('adminCard' + idx);
+  if (card) card.style.border = '2px solid var(--primary)';
+
+  // UPI pay link
+  const upiLink = document.getElementById('payNowUPILink');
+  const payBtn  = document.getElementById('payNowLink');
+  if (upiId && upiId !== 'UPI ID set nahi hai') {
+    const upiUrl = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(adminName)}&am=${totalDue}&cu=INR&tn=${encodeURIComponent('Rent Payment - ' + (STATE.user.name || ''))}`;
+    payBtn.href = upiUrl;
+    upiLink.style.display = 'block';
+
+    // WhatsApp ka number dhundo
+    const admin = (STATE._payAdmins || [])[idx];
+    STATE._selectedPayAdmin = admin;
+  } else {
+    upiLink.style.display = 'none';
+    toast('Is landlord ka UPI ID set nahi hai', 'warning');
+  }
+}
+
+function openWhatsApp() {
+  const admin = STATE._selectedPayAdmin || (STATE._payAdmins || [])[0];
+  if (!admin || !admin.mobile) {
+    // Admins se WhatsApp numbers lo
+    const admins = STATE._payAdmins || STATE.data.adminUPIs || [];
+    if (!admins.length) { toast('Landlord contact nahi mila', 'error'); return; }
+    if (admins.length === 1) {
+      const mobile = admins[0].mobile || admins[0].Mobile;
+      if (!mobile) { toast('Landlord ka WhatsApp number set nahi hai', 'warning'); return; }
+      const msg = `Namaskar! Maine rent payment ki hai. Screenshot dekho. — ${STATE.user.name || ''}`;
+      window.open('https://wa.me/91' + String(mobile) + '?text=' + encodeURIComponent(msg), '_blank');
+    } else {
+      // Multiple admins — WhatsApp modal kholo
+      showModal('whatsappModal');
+      const grid = document.getElementById('whatsappAdmins');
+      grid.innerHTML = admins.map((a, i) => `
+        <div class="upi-card" onclick="sendPaymentWhatsApp('${a.mobile || a.Mobile || ''}','${a.name || a.Name || ''}')">
+          <div style="font-size:28px;margin-bottom:8px">👤</div>
+          <div class="upi-name">${a.name || a.Name}</div>
+          <div class="upi-id">${a.mobile || a.Mobile || 'Number nahi hai'}</div>
+        </div>
+      `).join('');
+    }
+    return;
+  }
+  sendPaymentWhatsApp(admin.mobile || admin.Mobile, admin.name || admin.Name);
+}
+
+function sendPaymentWhatsApp(mobile, adminName) {
+  if (!mobile) { toast('WhatsApp number set nahi hai', 'warning'); return; }
+  const msg = `Namaskar ${adminName || ''} ji! 🙏
+
+Maine rent payment ki hai.
+Naam: *${STATE.user.name || ''}*
+Room: *${STATE.user.roomNo || ''}*
+
+Payment screenshot attach kar raha/rahi hun.
+
+Shukriya! 🙏`;
+  window.open('https://wa.me/91' + String(mobile) + '?text=' + encodeURIComponent(msg), '_blank');
+  hideModal('whatsappModal');
+  hideModal('payNowModal');
 }
 
 // ================================================================
